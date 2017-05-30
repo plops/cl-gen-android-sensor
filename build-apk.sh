@@ -1,3 +1,5 @@
+export JAVA_HOME=${HOME}/and/jdk1.8.0_131
+export PATH=${JAVA_HOME}/bin:$PATH
 NDK="${HOME}/and/android-ndk-r14b"
 ARM_TOOLCHAIN="${NDK}/toolchains/arm-linux-androideabi-4.9/prebuilt/"
 ARM_TOOLCHAIN+="linux-x86_64/bin/arm-linux-androideabi-gcc"
