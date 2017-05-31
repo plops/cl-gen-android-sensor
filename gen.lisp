@@ -38,16 +38,16 @@
 		      (destructuring-bind (name &key (ret "static void") args (body '(statements))) e
 			`(function (,name ((activity :type ANativeActivity*)
 					   ,@args) ,ret)
-				  #+nil(funcall __android_log_print ANDROID_LOG_INFO
+				  (funcall __android_log_print ANDROID_LOG_INFO
 					   (string "native-activity")
-					   (string ,(format nil "native-activity ~a %p" name))
+					   (string ,(format nil "~a %p" name))
 					   activity)
 				  ,body)))
 	       (function (ANativeActivity_onCreate ((activity :type ANativeActivity*)
 						      (savedState :type void*)
 						      (savedStateSize :type size_t)) void)
 		  
-			 #+nil(funcall __android_log_print ANDROID_LOG_INFO
+			 (funcall __android_log_print ANDROID_LOG_INFO
 				  (string "native-activity")
 				  (string "%p")
 				  activity)
