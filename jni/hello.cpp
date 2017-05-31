@@ -1,6 +1,7 @@
 #include <android/log.h>
 #include <android/native_activity.h>
 #include <jni.h>
+#include <string.h>
 static void onStart(ANativeActivity *activity) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity", "onStart %p",
                       activity);

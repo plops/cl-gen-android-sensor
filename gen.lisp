@@ -34,6 +34,7 @@
 		 (include <android/native_activity.h>)
 	       (include <android/log.h>)
 	       (include <jni.h>)
+	       (include <string.h>)
 	       ,@(loop for e in *callbacks*  collect
 		      (destructuring-bind (name &key (ret "static void") args (body '(statements))) e
 			`(function (,name ((activity :type ANativeActivity*)
