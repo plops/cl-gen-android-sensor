@@ -63,31 +63,32 @@
 					     "static void*")
 			 (statements ;let ((input_looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))
 			  (while true
-			    (let ((window_initialized_p :type "static bool" :ctor false))
-			      (if (&& (== false window_initialized_p) (!= nullptr g_window))
-				  (statements
+			    (statements ;let ((window_initialized_p :type "static bool" :ctor false))
+			     (if (with-compilation-unit ;&& (== false window_initialized_p)
+				     (!= nullptr g_window))
+				  #+nil (statements
 				   (setf window_initialized_p true)
 				   )
 				  (statements
-				   (if (!= nullptr g_window)
+				   (statements ;xif (!= nullptr g_window)
 				       (statements
 					(funcall __android_log_print ANDROID_LOG_INFO
-					      (string "native-activity")
-					      (string "draw"))
+						 (string "native-activity")
+						 (string "draw"))
 					(funcall ANativeWindow_setBuffersGeometry g_window 0 0 WINDOW_FORMAT_RGBA_8888)
 					(let ((buf :type ANativeWindow_Buffer))
-					 (if (<= 0 (funcall ANativeWindow_lock g_window &buf nullptr))
-					     (statements
-					      (funcall memset buf.bits (hex #xff0a0aaa) (* buf.stride buf.height (funcall sizeof uint32_t)))
-					      (let ((p :type char* :ctor (funcall reinterpret_cast<char*> buf.bits)))
-						(dotimes (i 256)
-							(dotimes (j 256)
-							  (setf
-							   (aref p (+ 0 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 255
-							   (aref p (+ 1 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 0
-							   (aref p (+ 2 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 0
-							   (aref p (+ 3 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 255))))
-					      (funcall ANativeWindow_unlockAndPost g_window)))))))))
+					  (if (<= 0 (funcall ANativeWindow_lock g_window &buf nullptr))
+					      (statements
+					       (funcall memset buf.bits (hex #xff0a0aaa) (* buf.stride buf.height (funcall sizeof uint32_t)))
+					       (let ((p :type char* :ctor (funcall reinterpret_cast<char*> buf.bits)))
+						 (dotimes (i 256)
+						   (dotimes (j 256)
+						     (setf
+						      (aref p (+ 0 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 255
+						      (aref p (+ 1 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 0
+						      (aref p (+ 2 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 0
+						      (aref p (+ 3 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 255))))
+					       (funcall ANativeWindow_unlockAndPost g_window)))))))))
 			    (if (!= nullptr g_input_queue)
 				(statements
 				 (while (== 1 (funcall AInputQueue_hasEvents g_input_queue))

@@ -81,34 +81,26 @@ static void onLowMemory(ANativeActivity *activity) {
 static void *android_app_create(ANativeActivity *activity, void *savedState,
                                 size_t savedStateSize) {
   while (true) {
-    {
-      static bool window_initialized_p(false);
-      if (((false == window_initialized_p) && (nullptr != g_window))) {
-        window_initialized_p = true;
-      } else {
-        if ((nullptr != g_window)) {
-          __android_log_print(ANDROID_LOG_INFO, "native-activity", "draw");
-          ANativeWindow_setBuffersGeometry(g_window, 0, 0,
-                                           WINDOW_FORMAT_RGBA_8888);
+    if ((nullptr != g_window)) {
+      __android_log_print(ANDROID_LOG_INFO, "native-activity", "draw");
+      ANativeWindow_setBuffersGeometry(g_window, 0, 0, WINDOW_FORMAT_RGBA_8888);
+      {
+        ANativeWindow_Buffer buf;
+        if ((0 <= ANativeWindow_lock(g_window, &buf, nullptr))) {
+          memset(buf.bits, 0xFF0A0AAA,
+                 (buf.stride * buf.height * sizeof(uint32_t)));
           {
-            ANativeWindow_Buffer buf;
-            if ((0 <= ANativeWindow_lock(g_window, &buf, nullptr))) {
-              memset(buf.bits, 0xFF0A0AAA,
-                     (buf.stride * buf.height * sizeof(uint32_t)));
-              {
-                char *p(reinterpret_cast<char *>(buf.bits));
-                for (unsigned int i = 0; (i < 256); i += 1) {
-                  for (unsigned int j = 0; (j < 256); j += 1) {
-                    p[(0 + (sizeof(uint32_t) * ((i * buf.stride) + j)))] = 255;
-                    p[(1 + (sizeof(uint32_t) * ((i * buf.stride) + j)))] = 0;
-                    p[(2 + (sizeof(uint32_t) * ((i * buf.stride) + j)))] = 0;
-                    p[(3 + (sizeof(uint32_t) * ((i * buf.stride) + j)))] = 255;
-                  }
-                }
+            char *p(reinterpret_cast<char *>(buf.bits));
+            for (unsigned int i = 0; (i < 256); i += 1) {
+              for (unsigned int j = 0; (j < 256); j += 1) {
+                p[(0 + (sizeof(uint32_t) * ((i * buf.stride) + j)))] = 255;
+                p[(1 + (sizeof(uint32_t) * ((i * buf.stride) + j)))] = 0;
+                p[(2 + (sizeof(uint32_t) * ((i * buf.stride) + j)))] = 0;
+                p[(3 + (sizeof(uint32_t) * ((i * buf.stride) + j)))] = 255;
               }
-              ANativeWindow_unlockAndPost(g_window);
             }
           }
+          ANativeWindow_unlockAndPost(g_window);
         }
       }
     }
