@@ -94,11 +94,13 @@
 				 (while (== 1 (funcall AInputQueue_hasEvents g_input_queue))
 				   (let ((event :type AInputEvent*))
 				     (funcall AInputQueue_getEvent g_input_queue &event)
-				     (funcall AInputQueue_finishEvent g_input_queue event 1)
 				     (funcall __android_log_print ANDROID_LOG_INFO
 					      (string "native-activity")
-					      (string "event %p")
-					      event)))))
+					      (string "event %p %d")
+					      event
+					      (funcall AInputEvent_getType event))
+				     (funcall AInputQueue_finishEvent g_input_queue event 1)
+				     ))))
 			    (funcall usleep 1000)))
 			 (return nullptr))
 	       (function (ANativeActivity_onCreate ((activity :type ANativeActivity*)

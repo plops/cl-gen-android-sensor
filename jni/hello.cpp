@@ -109,9 +109,9 @@ static void *android_app_create(ANativeActivity *activity, void *savedState,
         {
           AInputEvent *event;
           AInputQueue_getEvent(g_input_queue, &event);
+          __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                              "event %p %d", event, AInputEvent_getType(event));
           AInputQueue_finishEvent(g_input_queue, event, 1);
-          __android_log_print(ANDROID_LOG_INFO, "native-activity", "event %p",
-                              event);
         }
       }
     }
