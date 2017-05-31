@@ -4,7 +4,8 @@
           versionCode="1"
           versionName="0.1">
   <uses-sdk android:minSdkVersion="16"/>
-  <application android:label="Hello">
+  <application android:label="Hello"
+	       android:hasCode="false">
     <activity android:name="android.app.NativeActivity"
 	      android:label="Hello"
 	      android:configChanges="orientation|keyboardHidden">
