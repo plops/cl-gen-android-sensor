@@ -15,7 +15,7 @@ LDFLAGS="-landroid -llog"
 
 "${ARM_TOOLCHAIN}" --sysroot="${NDK}/platforms/android-16/arch-arm" \
       -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -Wl,--fix-cortex-a8 \
-      -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp "${LDFLAGS}" 
+      -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp "${LDFLAGS}" -std=gnu++1y
 
 #"${X86_TOOLCHAIN}" --sysroot="${NDK}/platforms/android-16/arch-x86" \
 #      -fPIC -shared -o build/apk/lib/x86/libhello.so jni/hello.cpp "${LDFLAGS}" 
