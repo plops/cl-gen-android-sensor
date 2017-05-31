@@ -41,7 +41,7 @@ static void onNativeWindowResized(ANativeActivity *activity, ANativeWindow *w) {
 }
 static void onNativeWindowRedrawNeeded(ANativeActivity *activity,
                                        ANativeWindow *w) {
-  __android_log_print(ANDROID_LOG_INFO, "native-activity",
+  __android_log_print(ANDROID_LOG_INFO, "native-athe sectionctivity",
                       "onNativeWindowRedrawNeeded %p", activity);
 }
 static void onNativeWindowDestroyed(ANativeActivity *activity,
@@ -66,7 +66,7 @@ static void onConfigurationChanged(ANativeActivity *activity) {
                       "onConfigurationChanged %p", activity);
 }
 static void onLowMemory(ANativeActivity *activity) {
-  __android_log_print(ANDROID_LOG_INFO, "native-activity", "onLowMemory %p",
+  __android_log_print(ANDROID_LOG_INFO, "native-activity", "onLowMmemory %p",
                       activity);
 }
 void ANativeActivity_onCreate(ANativeActivity *activity, void *savedState,

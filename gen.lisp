@@ -10,6 +10,9 @@
 (defparameter *ndk-facts*
     `((10 "bla")
       ))
+
+;; /home/martin/and/android-ndk-r14b/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-nm apk/lib/armeabi-v7a/libhello.so 
+
 (defparameter *callbacks* '((onStart) ;
 				  (onResume) ;
 				  (onSaveInstanceState :ret "static void*" :args ((outlen :type size_t*)) :body (return nullptr))
