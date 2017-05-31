@@ -27,7 +27,7 @@
 			    (onNativeWindowDestroyed  :args ((w :type ANativeWindow*)))
 			
 			    (onInputQueueCreated :args ((in :type AInputQueue*)))
-				  (onInputQueueDestroyed :args ((in :type AInputQueue*)))
+				  (onInputQueueDestroyed :args ((in :type AInputQueue*)) :body (setf g_input_queue in))
 				  (onContentRectChanged :args ((rect :type "const ARect*")))
 				  (onConfigurationChanged )
 				  (onLowMemory) ;
@@ -40,6 +40,8 @@
 	       (include <jni.h>)
 	       ;(include <string.h>)
 	       (include <unistd.h>) ;; usleep
+	       ;(include <android/looper.h>)
+	       (decl ((g_input_queue :type AInputQueue* :ctor nullptr)))
 	       ,@(loop for e in *callbacks*  collect
 		      (destructuring-bind (name &key (ret "static void") args (body '(statements))) e
 			`(function (,name ((activity :type ANativeActivity*)
@@ -53,8 +55,15 @@
 					      (savedState :type void*)
 					      (savedStateSize :type size_t))
 					     "static void*")
-			 (while true
-			   (funcall usleep 100000))
+			 (statements ;let ((input_looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))
+			  (while true
+			    (if (!= nullptr g_input_queue)
+				(statements
+				 (while (== 1 (funcall AInputQueue_hasEvents g_input_queue))
+				   (let ((event :type AInputEvent*))
+				     (funcall AInputQueue_getEvent g_input_queue &event)
+				     (funcall AInputQueue_finishEvent g_input_queue event 1)))))
+			    (funcall usleep 100000)))
 			 (return nullptr))
 	       (function (ANativeActivity_onCreate ((activity :type ANativeActivity*)
 						      (savedState :type void*)

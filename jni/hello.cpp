@@ -2,6 +2,8 @@
 #include <android/native_activity.h>
 #include <jni.h>
 #include <unistd.h>
+AInputQueue *g_input_queue(nullptr);
+
 static void onStart(ANativeActivity *activity) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity", "onStart %p",
                       activity);
@@ -56,6 +58,7 @@ static void onInputQueueCreated(ANativeActivity *activity, AInputQueue *in) {
 static void onInputQueueDestroyed(ANativeActivity *activity, AInputQueue *in) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity",
                       "onInputQueueDestroyed %p", activity);
+  g_input_queue = in;
 }
 static void onContentRectChanged(ANativeActivity *activity, const ARect *rect) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity",
@@ -72,6 +75,15 @@ static void onLowMemory(ANativeActivity *activity) {
 static void *android_app_create(ANativeActivity *activity, void *savedState,
                                 size_t savedStateSize) {
   while (true) {
+    if ((nullptr != g_input_queue)) {
+      while ((1 == AInputQueue_hasEvents(g_input_queue))) {
+        {
+          AInputEvent *event;
+          AInputQueue_getEvent(g_input_queue, &event);
+          AInputQueue_finishEvent(g_input_queue, event, 1);
+        }
+      }
+    }
     usleep(100000);
   }
   return nullptr;
