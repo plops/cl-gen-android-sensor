@@ -21,7 +21,7 @@
 				  (onStop) ;
 				  (onDestroy) ;
 				  (onWindowFocusChanged :args ((focused :type int)))
-			    (onNativeWindowCreated  :args ((w :type ANativeWindow*)))
+			    (onNativeWindowCreated  :args ((w :type ANativeWindow*)) :body (setf g_window w))
 			    (onNativeWindowResized  :args ((w :type ANativeWindow*)))
 			    (onNativeWindowRedrawNeeded  :args ((w :type ANativeWindow*)))
 			    (onNativeWindowDestroyed  :args ((w :type ANativeWindow*)))
@@ -40,8 +40,14 @@
 	       (include <jni.h>)
 	       ;(include <string.h>)
 	       (include <unistd.h>) ;; usleep
-	       ;(include <android/looper.h>)
-	       (decl ((g_input_queue :type AInputQueue* :ctor nullptr)))
+	       ;;(include <android/looper.h>)
+	       (include <android/window.h>)
+	       (include <android/rect.h>)
+	       (include <android/native_window_jni.h>)
+	       (include <android/native_window.h>)
+	       
+	       (decl ((g_input_queue :type AInputQueue* :ctor nullptr)
+		      (g_window :type ANativeWindow* :ctor nullptr)))
 	       ,@(loop for e in *callbacks*  collect
 		      (destructuring-bind (name &key (ret "static void") args (body '(statements))) e
 			`(function (,name ((activity :type ANativeActivity*)
@@ -57,13 +63,42 @@
 					     "static void*")
 			 (statements ;let ((input_looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))
 			  (while true
+			    (let ((window_initialized_p :type "static bool" :ctor false))
+			      (if (&& (== false window_initialized_p) (!= nullptr g_window))
+				  (statements
+				   (setf window_initialized_p true)
+				   )
+				  (statements
+				   (if (!= nullptr g_window)
+				       (statements
+					(funcall __android_log_print ANDROID_LOG_INFO
+					      (string "native-activity")
+					      (string "draw"))
+					(funcall ANativeWindow_setBuffersGeometry g_window 0 0 WINDOW_FORMAT_RGBA_8888)
+					(let ((buf :type ANativeWindow_Buffer))
+					 (if (<= 0 (funcall ANativeWindow_lock g_window &buf nullptr))
+					     (statements
+					      (funcall memset buf.bits (hex #xff0a0aaa) (* buf.stride buf.height (funcall sizeof uint32_t)))
+					      (let ((p :type char* :ctor (funcall reinterpret_cast<char*> buf.bits)))
+						(dotimes (i 256)
+							(dotimes (j 256)
+							  (setf
+							   (aref p (+ 0 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 255
+							   (aref p (+ 1 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 0
+							   (aref p (+ 2 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 0
+							   (aref p (+ 3 (* (funcall sizeof uint32_t) (+ (* i buf.stride) j)))) 255))))
+					      (funcall ANativeWindow_unlockAndPost g_window)))))))))
 			    (if (!= nullptr g_input_queue)
 				(statements
 				 (while (== 1 (funcall AInputQueue_hasEvents g_input_queue))
 				   (let ((event :type AInputEvent*))
 				     (funcall AInputQueue_getEvent g_input_queue &event)
-				     (funcall AInputQueue_finishEvent g_input_queue event 1)))))
-			    (funcall usleep 100000)))
+				     (funcall AInputQueue_finishEvent g_input_queue event 1)
+				     (funcall __android_log_print ANDROID_LOG_INFO
+					      (string "native-activity")
+					      (string "event %p")
+					      event)))))
+			    (funcall usleep 1000)))
 			 (return nullptr))
 	       (function (ANativeActivity_onCreate ((activity :type ANativeActivity*)
 						      (savedState :type void*)
@@ -76,7 +111,8 @@
 		  (setf ,@(loop for e in *callbacks* appending
 			       (destructuring-bind (name &key (ret "static void") args (body '(statements))) e
 				 `((slot->value activity->callbacks ,name) ,name))))
-		  (setf activity->instance nullptr)))))
+		  (setf activity->instance (funcall android_app_create activity savedState savedStateSize)
+			)))))
   (write-source "/home/martin/and/src/jni/hello" "cpp" code))
 
 
