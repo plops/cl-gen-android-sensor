@@ -1,24 +1,30 @@
 export JAVA_HOME=${HOME}/and/jdk1.8.0_131
-export PATH=${JAVA_HOME}/bin:$PATH
+export PATH=${JAVA_HOME}/bin:/home/martin/and/android-ndk-r14b/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/arm-linux-androideabi/bin/:$PATH
 NDK="${HOME}/and/android-ndk-r14b"
 ARM_TOOLCHAIN="${NDK}/toolchains/arm-linux-androideabi-4.9/prebuilt/"
 ARM_TOOLCHAIN+="linux-x86_64/bin/arm-linux-androideabi-g++"
 X86_TOOLCHAIN="${NDK}/toolchains/x86-4.9/prebuilt/"
-X86_TOOLCHAIN+="linux-x86_64/bin/i686-linux-android-gcc"
+X86_TOOLCHAIN+="linux-x86_64/bin/i686-linux-android-g++"
+AMD64_TOOLCHAIN="${NDK}/toolchains/x86_64-4.9/prebuilt/"
+AMD64_TOOLCHAIN+="linux-x86_64/bin/x86_64-linux-android-g++"
 SDK="${HOME}/and/android-sdk-linux"
 BUILD_TOOLS="${SDK}/build-tools/26_rc2/"
 PLATFORM="${SDK}/platforms/android-5.1.1/"
 
-mkdir -p build/apk/lib/armeabi-v7a build/apk/lib/x86
+mkdir -p build/apk/lib/armeabi-v7a build/apk/lib/x86 build/apk/lib/x86_64
 
-LDFLAGS="-L/home/martin/and/android-ndk-r14b/platforms/android-16/arch-arm/usr/lib/ -landroid -llog"
-
-"${ARM_TOOLCHAIN}" --sysroot="${NDK}/platforms/android-16/arch-arm" \
-      -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -Wl,--fix-cortex-a8 \
-      -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp  -std=c++11 "${LDFLAGS}"
+#LDFLAGS="-L/home/martin/and/android-ndk-r14b/platforms/android-23/arch-arm/usr/lib/ -landroid -llog"
+LDFLAGS="-landroid -llog"
+CFLAGS="-std=c++11 -g"
+#"${ARM_TOOLCHAIN}"
+/home/martin/and/android-ndk-r14b/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-g++  \
+    --sysroot="${NDK}/platforms/android-23/arch-arm" -std=c++11 -g \
+    -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -Wl,--fix-cortex-a8 \
+    -no-canonical-prefixes \
+    -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp -landroid -llog 
  
-#"${X86_TOOLCHAIN}" --sysroot="${NDK}/platforms/android-16/arch-x86" \
-#      -fPIC -shared -o build/apk/lib/x86/libhello.so jni/hello.cpp "${LDFLAGS}" 
+#"${X86_TOOLCHAIN}" "${CFLAGS}"  --sysroot="${NDK}/platforms/android-23/arch-x86" -fPIC -shared -o build/apk/lib/x86/libhello.so jni/hello.cpp "${LDFLAGS}"
+"${AMD64_TOOLCHAIN}" ${CFLAGS}  --sysroot="${NDK}/platforms/android-23/arch-x86_64" -fPIC -shared -o build/apk/lib/x86_64/libhello.so jni/hello.cpp ${LDFLAGS} 
 
 mkdir -p build/gen build/obj build/apk
 "${BUILD_TOOLS}/aapt" package -f -m -J build/gen/ -S res       -M AndroidManifest.xml -I "${PLATFORM}/android.jar"
