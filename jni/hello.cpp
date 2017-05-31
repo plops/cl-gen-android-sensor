@@ -1,7 +1,7 @@
 #include <android/log.h>
 #include <android/native_activity.h>
 #include <jni.h>
-#include <string.h>
+#include <unistd.h>
 static void onStart(ANativeActivity *activity) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity", "onStart %p",
                       activity);
@@ -41,7 +41,7 @@ static void onNativeWindowResized(ANativeActivity *activity, ANativeWindow *w) {
 }
 static void onNativeWindowRedrawNeeded(ANativeActivity *activity,
                                        ANativeWindow *w) {
-  __android_log_print(ANDROID_LOG_INFO, "native-athe sectionctivity",
+  __android_log_print(ANDROID_LOG_INFO, "native-activity",
                       "onNativeWindowRedrawNeeded %p", activity);
 }
 static void onNativeWindowDestroyed(ANativeActivity *activity,
@@ -66,8 +66,15 @@ static void onConfigurationChanged(ANativeActivity *activity) {
                       "onConfigurationChanged %p", activity);
 }
 static void onLowMemory(ANativeActivity *activity) {
-  __android_log_print(ANDROID_LOG_INFO, "native-activity", "onLowMmemory %p",
+  __android_log_print(ANDROID_LOG_INFO, "native-activity", "onLowMemory %p",
                       activity);
+}
+static void *android_app_create(ANativeActivity *activity, void *savedState,
+                                size_t savedStateSize) {
+  while (true) {
+    usleep(100000);
+  }
+  return nullptr;
 }
 void ANativeActivity_onCreate(ANativeActivity *activity, void *savedState,
                               size_t savedStateSize) {

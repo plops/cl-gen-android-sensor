@@ -38,7 +38,8 @@
 		 (include <android/native_activity.h>)
 	       (include <android/log.h>)
 	       (include <jni.h>)
-	       (include <string.h>)
+	       ;(include <string.h>)
+	       (include <unistd.h>) ;; usleep
 	       ,@(loop for e in *callbacks*  collect
 		      (destructuring-bind (name &key (ret "static void") args (body '(statements))) e
 			`(function (,name ((activity :type ANativeActivity*)
@@ -48,6 +49,13 @@
 					   (string ,(format nil "~a %p" name))
 					   activity)
 				  ,body)))
+	       (function (android_app_create ((activity :type ANativeActivity*)
+					      (savedState :type void*)
+					      (savedStateSize :type size_t))
+					     "static void*")
+			 (while true
+			   (funcall usleep 100000))
+			 (return nullptr))
 	       (function (ANativeActivity_onCreate ((activity :type ANativeActivity*)
 						      (savedState :type void*)
 						      (savedStateSize :type size_t)) void)
