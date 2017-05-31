@@ -11,12 +11,12 @@ PLATFORM="${SDK}/platforms/android-5.1.1/"
 
 mkdir -p build/apk/lib/armeabi-v7a build/apk/lib/x86
 
-LDFLAGS="-landroid -llog"
+LDFLAGS="-L/home/martin/and/android-ndk-r14b/platforms/android-16/arch-arm/usr/lib/ -landroid -llog"
 
 "${ARM_TOOLCHAIN}" --sysroot="${NDK}/platforms/android-16/arch-arm" \
       -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -Wl,--fix-cortex-a8 \
-      -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp "${LDFLAGS}" -std=gnu++1y
-
+      -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp  -std=gnu++1y "${LDFLAGS}"
+ 
 #"${X86_TOOLCHAIN}" --sysroot="${NDK}/platforms/android-16/arch-x86" \
 #      -fPIC -shared -o build/apk/lib/x86/libhello.so jni/hello.cpp "${LDFLAGS}" 
 
