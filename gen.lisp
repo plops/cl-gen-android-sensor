@@ -24,10 +24,10 @@
 			    (onNativeWindowCreated  :args ((w :type ANativeWindow*)) :body (setf g_window w))
 			    (onNativeWindowResized  :args ((w :type ANativeWindow*)))
 			    (onNativeWindowRedrawNeeded  :args ((w :type ANativeWindow*)))
-			    (onNativeWindowDestroyed  :args ((w :type ANativeWindow*)))
+			    (onNativeWindowDestroyed  :args ((w :type ANativeWindow*)) :body (setf g_window nullptr))
 			
-			    (onInputQueueCreated :args ((in :type AInputQueue*)))
-				  (onInputQueueDestroyed :args ((in :type AInputQueue*)) :body (setf g_input_queue in))
+			    (onInputQueueCreated :args ((in :type AInputQueue*)) :body (setf g_input_queue in))
+				  (onInputQueueDestroyed :args ((in :type AInputQueue*)) :body (setf g_input_queue nullptr))
 				  (onContentRectChanged :args ((rect :type "const ARect*")))
 				  (onConfigurationChanged )
 				  (onLowMemory) ;

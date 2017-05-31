@@ -7,7 +7,8 @@
         android:label="Hello"
         android:supportsRtl="true"
         android:hasCode="false">
-        <activity android:name="android.app.NativeActivity">
+      <activity android:name="android.app.NativeActivity"
+		android:configChanges="orientation|keyboardHidden">
             <meta-data android:name="android.app.lib_name"
                 android:value="hello"/>
             <intent-filter>
@@ -19,25 +20,3 @@
     </application>
 
 </manifest>
-
-<!-- <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="net.hanshq.hello"
-          versionCode="1"
-          versionName="0.1">
-  <uses-sdk android:minSdkVersion="16"/>
-  <application android:label="Hello"
-	       android:hasCode="false">
-    <activity android:name="android.app.NativeActivity"
-	      android:label="Hello"
-	      android:configChanges="orientation|keyboardHidden">
-      <meta-data android:name="android.app.lib_name"
-		 android:value="hello"/>
-      <intent-filter>
-        <action android:name="android.intent.action.MAIN"/>
-        <category android:name="android.intent.category.LAUNCHER"/>
-      </intent-filter>
-    </activity>
-  </application>
-</manifest>
--->

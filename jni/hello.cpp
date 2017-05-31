@@ -56,15 +56,17 @@ static void onNativeWindowDestroyed(ANativeActivity *activity,
                                     ANativeWindow *w) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity",
                       "onNativeWindowDestroyed %p", activity);
+  g_window = nullptr;
 }
 static void onInputQueueCreated(ANativeActivity *activity, AInputQueue *in) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity",
                       "onInputQueueCreated %p", activity);
+  g_input_queue = in;
 }
 static void onInputQueueDestroyed(ANativeActivity *activity, AInputQueue *in) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity",
                       "onInputQueueDestroyed %p", activity);
-  g_input_queue = in;
+  g_input_queue = nullptr;
 }
 static void onContentRectChanged(ANativeActivity *activity, const ARect *rect) {
   __android_log_print(ANDROID_LOG_INFO, "native-activity",
