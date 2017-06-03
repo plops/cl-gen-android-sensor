@@ -114,8 +114,8 @@
 		  (setf ,@(loop for e in *callbacks* appending
 			       (destructuring-bind (name &key (ret "static void") args (body '(statements))) e
 				 `((slot->value activity->callbacks ,name) ,name))))
+		  (funcall usleep 1000000)
 		  (setf activity->instance (funcall android_app_create activity savedState savedStateSize)
 			)))))
   (write-source "/home/martin/and/src/jni/hello" "cpp" code))
-
 

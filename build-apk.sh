@@ -21,7 +21,7 @@ CFLAGS="-std=c++11 -g"
     --sysroot="${NDK}/platforms/android-23/arch-arm" -std=c++11 -g \
     -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -Wl,--fix-cortex-a8 \
     -no-canonical-prefixes \
-    -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp -landroid -llog 
+    -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp jni/android_native_app_glue.c -landroid -llog 
  
 #"${X86_TOOLCHAIN}" "${CFLAGS}"  --sysroot="${NDK}/platforms/android-23/arch-x86" -fPIC -shared -o build/apk/lib/x86/libhello.so jni/hello.cpp "${LDFLAGS}"
 "${AMD64_TOOLCHAIN}" ${CFLAGS}  --sysroot="${NDK}/platforms/android-23/arch-x86_64" -fPIC -shared -o build/apk/lib/x86_64/libhello.so jni/hello.cpp ${LDFLAGS} 
