@@ -39,6 +39,8 @@
 	       (include <android/sensor.h>)
 	       (include <cmath>)
 	       (include <algorithm>)
+	       (include <array>)
+	       (include <complex>)
 
 	       ,(let ((n 1280))
 		  `(with-compilation-unit
@@ -92,11 +94,12 @@
 				     (b :type int)
 				     (a :type int)) "void inline")
 			 (let ((p :type char* :ctor (funcall reinterpret_cast<char*> buf.bits))
-			       (pos :ctor (* (funcall sizeof uint32_t) #+nil 
-
+			       (pos :ctor (* (funcall sizeof uint32_t) 
+					     #+nil
 					     (+ (* (% y buf.height)
-									     buf.stride)
+						   buf.stride)
 						(% x buf.stride))
+					     
 					     (+ (* y  buf.stride)
 									  x)
 
@@ -210,7 +213,32 @@
 			      (if (!= nullptr data->sensor_accelerometer)
 				  (statements
 				   (funcall ASensorEventQueue_disableSensor data->sensor_event_queue data->sensor_accelerometer)
-				  ))))))
+				   ))))))
+	       ;; https://stackoverflow.com/questions/10121574/safe-and-fast-fft
+	       (function (fft ((zs :type "std::array<std::complex<float>, N > &"))
+			      "template<std::size_t N> void")
+			 (let ((j :type "unsigned int" :ctor 0))
+			  (dotimes (i N)
+			    (if (< i j)
+				(statements
+				 (funcall "std::swap" (aref zs i) (aref zs j))))
+			    (let ((m :type int :ctor (/ N 2)))
+			      (^= j m)
+			      (while (== 0 (& j m))
+				(/= m 2)
+				(^= j m)))))
+			 (for ((j 1) (< j N) (*= j 2))
+			      (dotimes (m j)
+				(let ((sign :type "const auto" :ctor 1)
+				      (t :ctor (/ (* M_PI sign m) j))
+				      (w :ctor (funcall "std::complex<float>" (funcall cos t) (funcall sin t))))
+				  (for ((i m)
+					(< i N)
+					(+= i (* 2 j)))
+				       (let ((zi :ctor (aref zs i))
+					     (tz :ctor (* w (funcall zs.at (+ i j)))))
+					 (setf (aref zs i) (+ zi t)
+					       (funcall zs.at (+ i j)) (- zi t))))))))
 	       
 	       (function (android_main ((app :type android_app*))
 				       void)
@@ -254,6 +282,7 @@
 								  (* event.acceleration.y  event.acceleration.y )
 								  (* event.acceleration.z  event.acceleration.z )))))
 					       (setf (aref m_mag m_mag_idx) mag
+						     ;(aref m_mag (% (+ 1 m_mag_idx) M_MAG_N)) 0.0
 						     m_mag_idx (% (+ m_mag_idx 1)
 								  M_MAG_N))
 					       (if (== 0 (% m_mag_idx 10))

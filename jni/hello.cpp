@@ -2,7 +2,9 @@
 #include <algorithm>
 #include <android/log.h>
 #include <android/sensor.h>
+#include <array>
 #include <cmath>
+#include <complex>
 enum Constants { M_MAG_N = 1280 };
 
 int m_previous_x(-1);
@@ -531,6 +533,41 @@ void handle_activity_lifecycle_events(struct android_app *app, int32_t cmd) {
     }
     break;
   }
+  }
+}
+template <std::size_t N> void fft(std::array<std::complex<float>, N> &zs) {
+  {
+    unsigned int j(0);
+    for (unsigned int i = 0; (i < N); i += 1) {
+      if ((i < j)) {
+        std::swap(zs[i], zs[j]);
+      }
+      {
+        int m((N / 2));
+        j ^= m;
+        while ((0 == (j & m))) {
+          m /= 2;
+          j ^= m;
+        }
+      }
+    }
+  }
+  for (auto j = 1; (j < N); j *= 2) {
+    for (unsigned int m = 0; (m < j); m += 1) {
+      {
+        const auto sign(1);
+        auto t(((M_PI * sign * m) / j));
+        auto w(std::complex<float>(cos(t), sin(t)));
+        for (auto i = m; (i < N); i += (2 * j)) {
+          {
+            auto zi(zs[i]);
+            auto tz((w * zs.at((i + j))));
+            zs[i] = (zi + t);
+            zs.at((i + j)) = (zi - t);
+          }
+        }
+      }
+    }
   }
 }
 void android_main(android_app *app) {
