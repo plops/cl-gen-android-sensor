@@ -40,7 +40,7 @@
 	       (include <cmath>)
 	       (include <algorithm>)
 
-	       ,(let ((n 1000))
+	       ,(let ((n 1200))
 		  `(with-compilation-unit
 		    (enum Constants (M_MAG_N ,n))
 
@@ -65,7 +65,7 @@
 			      (let ((action :ctor (funcall AMotionEvent_getAction event))
 				    (pointer_index :type int32_t :ctor (>> (& action AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
 									   AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT))
-				    (pos_x :type int32_t :ctor (funcall AMotionEvent_getX event pointer_index)))
+				    (pos_x :type int32_t :ctor (funcall AMotionEvent_getY event pointer_index)))
 				(if (== AMOTION_EVENT_ACTION_MOVE action)
 				    (statements
 				     
@@ -92,9 +92,15 @@
 				     (b :type int)
 				     (a :type int)) "void inline")
 			 (let ((p :type char* :ctor (funcall reinterpret_cast<char*> buf.bits))
-			       (pos :ctor (* (funcall sizeof uint32_t) (+ (* (% y buf.height)
+			       (pos :ctor (* (funcall sizeof uint32_t) #+nil 
+
+					     (+ (* (% y buf.height)
 									     buf.stride)
-									  (% x buf.stride)))))
+						(% x buf.stride))
+					     (+ (* y  buf.stride)
+									  x)
+
+					     )))
 			   (setf
 			    (aref p (+ 0 pos)) (funcall static_cast<char> r)
 			    (aref p (+ 1 pos)) (funcall static_cast<char> g)
@@ -148,7 +154,7 @@
 			     (let ((p :type char* :ctor (funcall reinterpret_cast<char*> buf.bits))
 				   (x :type "static int" :ctor 0))
 			       (+= x (slot->value (funcall reinterpret_cast<userdata_t*> app->userData) move_x))
-			       (dotimes (i 256)
+			       #+nil (dotimes (i 256)
 				 (dotimes (j 256)
 				   (let ((pos :ctor (* (funcall sizeof uint32_t) (+ (* (% (+ j x)
 											  buf.stride)
@@ -158,27 +164,23 @@
 				     (aref p (+ 1 pos)) (funcall static_cast<char> 255)
 				     (aref p (+ 2 pos)) 0
 				     (aref p (+ 3 pos)) (funcall static_cast<char> 255)))))
-			       (dotimes (i 20)
+			       #+nil (dotimes (i 20)
 				 (funcall draw_line  buf 100 (* 10 i) 500 (* 5 i)))
-			       #+nil (let ((mi :ctor (aref m_mag2 0))
+			       (let ((mi :ctor (aref m_mag2 0))
 				     (ma :ctor (aref m_mag2 0)))
 				 (dotimes (i M_MAG_N)
 				   (setf mi (funcall "std::min" (aref m_mag2 i) mi))
-				   (setf mi (funcall "std::max" (aref m_mag2 i) mi)))
+				   (setf ma (funcall "std::max" (aref m_mag2 i) ma)))
 				 (dotimes (y (- M_MAG_N 1))
-				   (let ((xx1 :type int :ctor (funcall static_cast<int> (/ (* 1s0 (- buf.stride 1)
-											     (- (aref m_mag2 (+ y 1)) mi))
-											   (- ma mi))))
-					 (xx0 :type int :ctor (funcall static_cast<int> (/ (* 1s0 (- buf.stride 1)
-											     (- (aref m_mag2 (+ y 0)) mi))
-											  (- ma mi))))
-					 (pos1 :ctor (* (funcall sizeof uint32_t) (+ (* (% (+ (+ y 1) x ) buf.height)
-										       buf.stride)
-										     (% (+ xx1) buf.stride))))
-					 (pos0 :ctor (* (funcall sizeof uint32_t) (+ (* (% (+ (+ y 0) x ) buf.height)
-										       buf.stride)
-										    (% (+ xx0) buf.stride)))))
-				     (funcall draw_line buf xx0 pos0 xx1 pos1 )
+				   (let ((xx1 :type int :ctor (funcall static_cast<int> (+ .2s0 (/ (* .6s0 (- buf.stride 1)
+											       (- (aref m_mag2 (+ y 1)) mi))
+											    (- ma mi)))))
+					 (xx0 :type int :ctor (funcall static_cast<int> (+ .2s0 (/ (* .6s0 (- buf.stride 1)
+											       (- (aref m_mag2 (+ y 0)) mi))
+											    (- ma mi)))))
+					 (yy1 :ctor (* (funcall sizeof uint32_t) (% (+ (+ y 1) x ) buf.height)))
+					 (yy0 :ctor (* (funcall sizeof uint32_t) (% (+ (+ y 0) x ) buf.height))))
+				     (funcall draw_line buf xx0 (/ yy0 4) xx1 (/ yy1 4))
 				     
 				     ))))
 			     (funcall ANativeWindow_unlockAndPost win))))
@@ -200,8 +202,8 @@
 				  (statements
 				   (funcall ASensorEventQueue_enableSensor data->sensor_event_queue data->sensor_accelerometer)
 				   (funcall ASensorEventQueue_setEventRate data->sensor_event_queue data->sensor_accelerometer
-					    (* (/ (raw "1000L") 60)
-					       1000))))))
+					    (* (/ (raw "1000L") 5 ; 60
+						  )					       1000))))))
 			   (APP_CMD_LOST_FOCUS
 			    (let ((data :ctor (funcall reinterpret_cast<userdata_t*> app->userData)))
 			      (if (!= nullptr data->sensor_accelerometer)
@@ -232,7 +234,8 @@
 			   (while (== 0 app->destroyRequested)
 			     (let ((events :type int)
 				   (source :type android_poll_source*)
-				   (ident :type int :ctor (funcall ALooper_pollAll (? app->redrawNeeded 0 -1) nullptr &events
+				   (ident :type int :ctor (funcall ALooper_pollAll (? app->redrawNeeded 0 -1)
+								   nullptr &events
 								   (funcall reinterpret_cast<void**> &source))))
 			       (if (<= 0 ident)
 				   (statements
@@ -252,17 +255,32 @@
 					       (setf (aref m_mag m_mag_idx) mag
 						     m_mag_idx (% (+ m_mag_idx 1)
 								  M_MAG_N))
-					       (if (== 0 m_mag_idx)
+					       (if (== 0 (% m_mag_idx 1))
+						   (statements
+						    (dotimes (i M_MAG_N)
+						      (setf (aref m_mag2 i) (aref m_mag i)))
+						    (setf app->redrawNeeded 1)
+						    (macroexpand (alog (string "a: %f %f %f") (aref m_mag 0) (aref m_mag 1) (aref m_mag 2))))
+						   )
+					       #+nil (if (== 0 m_mag_idx)
 						   (statements
 						    (macroexpand (alog (string "a: %f %f %f") (aref m_mag 0) (aref m_mag 1) (aref m_mag 2)))
 						    (dotimes (i M_MAG_N)
 						      (setf (aref m_mag2 i) (aref m_mag i)))
-						    (setf app->redrawNeeded 1)))))))
+						    ;(setf app->redrawNeeded 1)
+						    ))))))
 				      (t
 				       (statements
 					(if (!= nullptr source)
-					    (funcall source->process app source))
-					(if app->redrawNeeded
-					    (funcall drawSomething app))))))))))))))
+					    (statements
+					     (funcall source->process app source)))
+					)))))
+			       (if app->redrawNeeded
+					    (statements
+
+					     (macroexpand (alog (string "draw %d")  app->redrawNeeded))
+					     (funcall drawSomething app)
+					     (setf app->redrawNeeded 0)
+					     (macroexpand (alog (string "dree %d" ) app->redrawNeeded)))))))))))
   (write-source "/home/martin/and/src/jni/hello" "cpp" code))
 
