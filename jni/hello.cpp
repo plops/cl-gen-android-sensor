@@ -3,7 +3,7 @@
 #include <android/log.h>
 #include <android/sensor.h>
 #include <cmath>
-enum Constants { M_MAG_N = 1200 };
+enum Constants { M_MAG_N = 1280 };
 
 int m_previous_x(-1);
 float m_mag[M_MAG_N] = {
@@ -178,7 +178,18 @@ float m_mag[M_MAG_N] = {
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
-    (0.0e+0f), (0.0e+0f), (0.0e+0f)};
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f)};
 float m_mag2[M_MAG_N] = {
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
@@ -351,7 +362,18 @@ float m_mag2[M_MAG_N] = {
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
-    (0.0e+0f), (0.0e+0f), (0.0e+0f)};
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
+    (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f)};
 int m_mag_idx = 0;
 
 struct userdata_t {
@@ -467,8 +489,8 @@ void drawSomething(android_app *app) {
                   ((2.e-1f) +
                    (((6.e-1f) * (buf.stride - 1) * (m_mag2[(y + 0)] - mi)) /
                     (ma - mi)))));
-              auto yy1((sizeof(uint32_t) * (((y + 1) + x) % buf.height)));
-              auto yy0((sizeof(uint32_t) * (((y + 0) + x) % buf.height)));
+              auto yy1((sizeof(uint32_t) * (((y + 1)) % buf.height)));
+              auto yy0((sizeof(uint32_t) * (((y + 0)) % buf.height)));
               draw_line(buf, xx0, (yy0 / 4), xx1, (yy1 / 4));
             }
           }
@@ -494,7 +516,7 @@ void handle_activity_lifecycle_events(struct android_app *app, int32_t cmd) {
                                        data->sensor_accelerometer);
         ASensorEventQueue_setEventRate(data->sensor_event_queue,
                                        data->sensor_accelerometer,
-                                       ((1000L / 5) * 1000));
+                                       ((1000L / 400) * 1000));
       }
     }
     break;
@@ -569,14 +591,11 @@ void android_main(android_app *app) {
                        (event.acceleration.z * event.acceleration.z))));
                   m_mag[m_mag_idx] = mag;
                   m_mag_idx = ((m_mag_idx + 1) % M_MAG_N);
-                  if ((0 == (m_mag_idx % 1))) {
+                  if ((0 == (m_mag_idx % 10))) {
                     for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
                       m_mag2[i] = m_mag[i];
                     }
                     app->redrawNeeded = 1;
-                    __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                        "a: %f %f %f", m_mag[0], m_mag[1],
-                                        m_mag[2]);
                   }
                 }
               }
@@ -592,12 +611,8 @@ void android_main(android_app *app) {
           }
         }
         if (app->redrawNeeded) {
-          __android_log_print(ANDROID_LOG_INFO, "native-activity", "draw %d",
-                              app->redrawNeeded);
           drawSomething(app);
           app->redrawNeeded = 0;
-          __android_log_print(ANDROID_LOG_INFO, "native-activity", "dree %d",
-                              app->redrawNeeded);
         }
       }
     }
