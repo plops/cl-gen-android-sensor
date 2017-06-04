@@ -332,6 +332,52 @@ int32_t handle_input_events(android_app *app, AInputEvent *event) {
   }
   return 1;
 }
+void inline set_pixel(ANativeWindow_Buffer &buf, int x, int y, int r, int g,
+                      int b, int a) {
+  {
+    char *p(reinterpret_cast<char *>(buf.bits));
+    auto pos((sizeof(uint32_t) *
+              (((y % buf.height) * buf.stride) + (x % buf.stride))));
+    p[(0 + pos)] = static_cast<char>(r);
+    p[(1 + pos)] = static_cast<char>(g);
+    p[(2 + pos)] = static_cast<char>(b);
+    p[(3 + pos)] = static_cast<char>(a);
+  }
+}
+void draw_line(ANativeWindow_Buffer &buf, float x1, float y1, float x2,
+               float y2) {
+  {
+    auto steep((std::abs((x2 - x1)) < std::abs((y2 - y1))));
+    if (steep) {
+      std::swap(x1, y1);
+      std::swap(x2, y2);
+    }
+    if ((x2 < x1)) {
+      std::swap(x1, x2);
+      std::swap(y1, y2);
+    }
+    {
+      auto dx((x2 - x1));
+      auto dy(std::abs((y2 - y1)));
+      auto err((dx / (2.e+0f)));
+      const int ystep(((y1 < y2)) ? (1) : (-1));
+      int y(static_cast<int>(y1));
+      const int maxX(static_cast<int>(x2));
+      for (int x = static_cast<int>(x1); (x < maxX); x += 1) {
+        if (steep) {
+          set_pixel(buf, y, x, 255, 0, 0, 255);
+        } else {
+          set_pixel(buf, x, y, 255, 0, 0, 255);
+        }
+        err -= dy;
+        if ((err < 0)) {
+          y += ystep;
+          err += dx;
+        }
+      }
+    }
+  }
+}
 void drawSomething(android_app *app) {
   {
     auto win(app->window);
@@ -347,31 +393,20 @@ void drawSomething(android_app *app) {
         char *p(reinterpret_cast<char *>(buf.bits));
         static int x(0);
         x += reinterpret_cast<userdata_t *>(app->userData)->move_x;
-        {
-          auto mi(m_mag2[0]);
-          auto ma(m_mag2[0]);
-          for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
-            mi = std::min(m_mag2[i], mi);
-            mi = std::max(m_mag2[i], mi);
-          }
-          for (unsigned int y = 0; (y < M_MAG_N); y += 1) {
-            for (unsigned int l = 0; (l < 5); l += 1) {
-              for (unsigned int k = 0; (k < 5); k += 1) {
-                {
-                  int xx(static_cast<int>(
-                      (((1.e+0f) * (buf.stride - 1) * (m_mag2[y] - mi)) /
-                       (ma - mi))));
-                  auto pos((sizeof(uint32_t) *
-                            ((((y + x + l) % buf.height) * buf.stride) +
-                             ((k + xx) % buf.stride))));
-                  p[(0 + pos)] = static_cast<char>(255);
-                  p[(1 + pos)] = static_cast<char>(0);
-                  p[(2 + pos)] = 0;
-                  p[(3 + pos)] = static_cast<char>(255);
-                }
-              }
+        for (unsigned int i = 0; (i < 256); i += 1) {
+          for (unsigned int j = 0; (j < 256); j += 1) {
+            {
+              auto pos((sizeof(uint32_t) *
+                        ((((j + x) % buf.stride) * buf.stride) + i)));
+              p[(0 + pos)] = static_cast<char>(128);
+              p[(1 + pos)] = static_cast<char>(255);
+              p[(2 + pos)] = 0;
+              p[(3 + pos)] = static_cast<char>(255);
             }
           }
+        }
+        for (unsigned int i = 0; (i < 20); i += 1) {
+          draw_line(buf, 100, (10 * i), 500, (5 * i));
         }
       }
       ANativeWindow_unlockAndPost(win);
