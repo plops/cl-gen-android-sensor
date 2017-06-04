@@ -41,10 +41,6 @@
 	       ;(include <string.h>)
 	       (include <unistd.h>) ;; usleep
 	       ;;(include <android/looper.h>)
-	       (include <android/window.h>)
-	       (include <android/rect.h>)
-	       (include <android/native_window_jni.h>)
-	       (include <android/native_window.h>)
 	       
 	       (decl ((g_input_queue :type AInputQueue* :ctor nullptr)
 		      (g_window :type ANativeWindow* :ctor nullptr)))
