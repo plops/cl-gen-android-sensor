@@ -10,7 +10,7 @@
 (defparameter *ndk-facts*
     `((10 "bla")
       ))
-
+;; gyro docs https://crypto.stanford.edu/gyrophone/files/gyromic.pdf
 ;; /home/martin/and/android-ndk-r14b/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-nm apk/lib/armeabi-v7a/libhello.so
 ;; export PATH=$PATH:/data/data/com.termux/files/usr/bin ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/data/data/com.termux/files/usr/lib 
 (defmacro benchmark (&body body)
