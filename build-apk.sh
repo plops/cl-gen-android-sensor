@@ -9,7 +9,7 @@ ARM_TOOLCHAIN="${NDK}/toolchains/arm-linux-androideabi-4.9/prebuilt/"
 SDK="${HOME}/and/android-sdk-linux"
 BUILD_TOOLS="${SDK}/build-tools/26_rc2/"
 PLATFORM="${SDK}/platforms/android-5.1.1/"
-
+ 
 #PLATFORM="/home/martin/Android/Sdk/platforms/android-18/"
 #NDK="/home/martin/Android/Sdk/ndk-bundle/"
 #ARM_TOOLCHAIN="${NDK}/toolchains/arm-linux-androideabi-4.9/prebuilt/"
