@@ -33,8 +33,11 @@ CFLAGS="-std=c++11 -g"
     -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -Wl,--fix-cortex-a8 \
     -no-canonical-prefixes \
     -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp jni/android_native_app_glue.c \
-    -landroid -llog
-
+    -landroid -llog \
+    -I/home/martin/and/android-ndk-r14b/sources/cxx-stl/llvm-libc++/include \
+    -I/home/martin/and/android-ndk-r14b/platforms/android-23/arch-arm/usr/include
+#    -I/home/martin/and/android-ndk-r14b/sources/cxx-stl/stlport/stlport
+   
 #-I/home/martin/Android/Sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include/
 
 # CLANG++ does not support arm
