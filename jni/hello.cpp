@@ -2214,8 +2214,57 @@ void fft(const std::array<std::complex<float>, N> &in,
     }
   }
 }
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
+#include <unistd.h>
+class net_t {
+public:
+  int m_fd;
+  int m_conn_fd;
+  sockaddr_in m_addr;
+
+  net_t(int port = 1234) {
+    m_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    m_addr.sin_family = AF_INET;
+    m_addr.sin_port = htons(port);
+    m_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    if ((!((0 < bind(m_fd, reinterpret_cast<sockaddr *>(&m_addr),
+                     sizeof(m_addr)))))) {
+      __android_log_print(ANDROID_LOG_INFO, "native-activity", "assertion (< 0\
+             (funcall bind m_fd (funcall reinterpret_cast<sockaddr*> &m_addr)\
+                      (funcall sizeof m_addr))) failed");
+    }
+    if ((!((0 < listen(m_fd, 10))))) {
+      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                          "assertion (< 0 (funcall listen m_fd 10)) failed");
+    }
+  }
+  void accept() {
+    {
+      socklen_t len(sizeof(m_addr));
+      m_conn_fd = ::accept(m_fd, reinterpret_cast<sockaddr *>(&m_addr), &len);
+      aassert
+    }
+  }
+  void close() { ::close(m_fd); }
+  template <std::size_t N> int send(std::array<unsigned char, N> data) {
+    {
+      auto bytes_send(0);
+      auto bytes_left(N);
+      while ((0 < bytes_left)) {
+        {
+          auto bytes(::send(m_conn_fd, (&(data[bytes_send])), bytes_left, 0));
+          bytes_left -= bytes;
+          bytes_sent += bytes;
+        }
+      }
+      return bytes_sent;
+    }
+  }
+};
+
 void *net_init(void *arg) {
   {
     int *thread_num(static_cast<int *>(arg));

@@ -7,6 +7,23 @@
   `(statements (<< "std::cout" ,@(loop for e in body collect
 				      (cond ((stringp e) `(string ,e))
 					    (t e))) "std::endl")))
+
+(defun replace-all (string part replacement &key (test #'char=))
+"Returns a new string in which all the occurences of the part 
+is replaced with replacement."
+    (with-output-to-string (out)
+      (loop with part-length = (length part)
+            for old-pos = 0 then (+ pos part-length)
+            for pos = (search part string
+                              :start2 old-pos
+                              :test test)
+            do (write-string string out
+                             :start old-pos
+                             :end (or pos (length string)))
+            when pos do (write-string replacement out)
+            while pos))) 
+
+
 (defparameter *ndk-facts*
     `((10 "Android Studio 3 canary 3 does not support advanced profiling of native apps.")
       ))
@@ -39,7 +56,11 @@
        (statements
 	(funcall __android_log_print ANDROID_LOG_INFO
 		 (string "native-activity")
-		 (string ,(format nil "assertion ~a failed" cond))))))
+		 (string ,(replace-all (format nil "assertion ~s failed" cond)
+				       "
+"
+				       "\\
+"))))))
 (defun rev (x nn)
   (let ((n (floor (log nn 2)))
       (res 0))
@@ -314,8 +335,42 @@
 		   ;; https://stackoverflow.com/questions/6033581/using-socket-in-android-ndk
 		   ;; https://github.com/wzbo/Android-NDK-Socket/blob/master/sample/app/src/main/jni/tcomm.c
 		   ;; https://github.com/mcxiaoke/android-ndk-notes/blob/master/posix-tcp-socket/src/main/jni/com_example_hellojni_Native.h
+		   ;; github.com/plops/c_net
 		   (include <sys/socket.h>)
+		 (include <arpa/inet.h>) ;; sockaddr_in
 		 (include <errno.h>)
+		 (include <netinet/in.h>)
+		 (include <unistd.h>)
+		 (class net_t ()
+			(access-specifier :public)
+			(decl ((m_fd :type int)
+			       (m_conn_fd :type int)
+			       (m_addr :type sockaddr_in)))
+			(function (net_t ((port :type int :default 1234)) nil)
+				  (setf m_fd (funcall socket AF_INET SOCK_STREAM IPPROTO_TCP)
+					m_addr.sin_family AF_INET
+					m_addr.sin_port (funcall htons port)
+					m_addr.sin_addr.s_addr (funcall htonl INADDR_ANY))
+				  (macroexpand (aassert (< 0 (funcall bind m_fd (funcall reinterpret_cast<sockaddr*> &m_addr)
+								      (funcall sizeof m_addr)))))
+				  (macroexpand (aassert (< 0 (funcall listen m_fd 10)))))
+			(function (accept () void)
+				  (let ((len :type socklen_t :ctor (funcall sizeof m_addr)))
+				    (setf m_conn_fd (funcall "::accept" m_fd (funcall reinterpret_cast<sockaddr*> &m_addr) &len))
+				    (macroexpand aassert (< 0 m_conn_fd))))
+			(function (close () void)
+				  (funcall "::close" m_fd))
+			(function (send ((data :type "std::array<unsigned char,N>")) "template<std::size_t N> int")
+				  (let ((bytes_send :ctor 0)
+					(bytes_left :ctor N)
+					)
+				    (while (< 0 bytes_left)
+				      (let ((bytes :ctor (funcall "::send" m_conn_fd (ref (aref data
+												bytes_send))
+								  bytes_left 0)))
+					(-= bytes_left bytes)
+					(+= bytes_sent bytes)))
+				    (return bytes_sent))))
 		(function (net_init ((arg :type void*)) void*)
 			  (let ((thread_num :type int* :ctor (funcall static_cast<int*> arg))
 				(sockfd :ctor (funcall socket AF_INET SOCK_STREAM 0)))
