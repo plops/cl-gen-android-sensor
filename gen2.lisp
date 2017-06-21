@@ -309,6 +309,15 @@
 					      w (* w w_m)))))))))
 		       ))
 
+
+	       (with-compilation-unit
+		   (include <sys/socket.h>)
+		 (include <errno.h>)
+		(function (net_init () void)
+			  (let ((sockfd :ctor (funcall socket AF_INET SOCK_STREAM 0)))
+			    (if (== -1 sockfd)
+				(statements
+				 (macroexpand (alog (string "socket open error: %d") errno)))))))
 	       
 	       (function (android_main ((app :type android_app*))
 				       void)
@@ -316,6 +325,7 @@
 			 (dotimes (i M_MAG_N)
 			   (setf (aref m_fft_in i) 0.0
 				 (aref m_fft_out_mag i) 0.0))
+			 (funcall net_init)
 			 (let ((data :type userdata_t :ctor (list 0))
 			       (sensor_manager :ctor (funcall ASensorManager_getInstance))
 			       (looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))

@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <android/log.h>
 #include <android/sensor.h>
-#include <android/trace.h>
 #include <array>
 #include <cmath>
 #include <complex>
@@ -2215,12 +2214,24 @@ void fft(const std::array<std::complex<float>, N> &in,
     }
   }
 }
+#include <errno.h>
+#include <sys/socket.h>
+void net_init() {
+  {
+    auto sockfd(socket(AF_INET, SOCK_STREAM, 0));
+    if ((-1 == sockfd)) {
+      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                          "socket open error: %d", errno);
+    }
+  }
+}
 void android_main(android_app *app) {
   app_dummy();
   for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
     m_fft_in[i] = (0.0e+0f);
     m_fft_out_mag[i] = (0.0e+0f);
   }
+  net_init();
   {
     userdata_t data({0});
     auto sensor_manager(ASensorManager_getInstance());
@@ -2284,7 +2295,6 @@ void android_main(android_app *app) {
                     for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
                       m_fft_in[i] = m_mag[i];
                     }
-                    ATrace_beginSection("fft");
                     {
                       auto start(current_time());
                       fft(m_fft_in, m_fft_out);
@@ -2292,7 +2302,6 @@ void android_main(android_app *app) {
                           ANDROID_LOG_INFO, "native-activity", "time: %f ms",
                           (((1.e+0f) / (1.e+3f)) * (current_time() - start)));
                     }
-                    ATrace_endSection();
                     for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
                       m_fft_out_mag[i] = std::log((1 + std::abs(m_fft_out[i])));
                     }
