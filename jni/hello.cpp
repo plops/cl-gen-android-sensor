@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <android/log.h>
 #include <android/sensor.h>
+#include <android/trace.h>
 #include <array>
 #include <cmath>
 #include <complex>
@@ -847,6 +848,7 @@ int32_t handle_input_events(android_app *app, AInputEvent *event) {
             ((action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >>
              AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT));
         int32_t pos_x(AMotionEvent_getY(event, pointer_index));
+        // FIXME why conversion from float to pos_x here?;
         if ((AMOTION_EVENT_ACTION_MOVE == action)) {
           {
             auto move_x((pos_x - m_previous_x));
@@ -2046,7 +2048,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((-1.e+0f), (-1.2246469e-16f));
     for (auto k = 0; (k < N); k += 2) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 1); j += 1) {
           {
             auto t((w * out[(k + j + 1)]));
@@ -2063,7 +2065,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((6.123234e-17f), (-1.e+0f));
     for (auto k = 0; (k < N); k += 4) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 2); j += 1) {
           {
             auto t((w * out[(k + j + 2)]));
@@ -2080,7 +2082,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((7.0710677e-1f), (-7.0710677e-1f));
     for (auto k = 0; (k < N); k += 8) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 4); j += 1) {
           {
             auto t((w * out[(k + j + 4)]));
@@ -2097,7 +2099,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((9.238795e-1f), (-3.8268343e-1f));
     for (auto k = 0; (k < N); k += 16) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 8); j += 1) {
           {
             auto t((w * out[(k + j + 8)]));
@@ -2114,7 +2116,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((9.8078525e-1f), (-1.9509032e-1f));
     for (auto k = 0; (k < N); k += 32) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 16); j += 1) {
           {
             auto t((w * out[(k + j + 16)]));
@@ -2131,7 +2133,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((9.951847e-1f), (-9.8017144e-2f));
     for (auto k = 0; (k < N); k += 64) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 32); j += 1) {
           {
             auto t((w * out[(k + j + 32)]));
@@ -2148,7 +2150,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((9.9879545e-1f), (-4.9067676e-2f));
     for (auto k = 0; (k < N); k += 128) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 64); j += 1) {
           {
             auto t((w * out[(k + j + 64)]));
@@ -2165,7 +2167,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((9.996988e-1f), (-2.4541229e-2f));
     for (auto k = 0; (k < N); k += 256) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 128); j += 1) {
           {
             auto t((w * out[(k + j + 128)]));
@@ -2182,7 +2184,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((9.999247e-1f), (-1.22715384e-2f));
     for (auto k = 0; (k < N); k += 512) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 256); j += 1) {
           {
             auto t((w * out[(k + j + 256)]));
@@ -2199,7 +2201,7 @@ void fft(const std::array<std::complex<float>, N> &in,
     const auto w_m = std::complex<float>((9.9998116e-1f), (-6.1358845e-3f));
     for (auto k = 0; (k < N); k += 1024) {
       {
-        std::complex<float> w(1);
+        std::complex<float> w((1.e+0f));
         for (unsigned int j = 0; (j < 512); j += 1) {
           {
             auto t((w * out[(k + j + 512)]));
@@ -2282,6 +2284,7 @@ void android_main(android_app *app) {
                     for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
                       m_fft_in[i] = m_mag[i];
                     }
+                    ATrace_beginSection("fft");
                     {
                       auto start(current_time());
                       fft(m_fft_in, m_fft_out);
@@ -2289,6 +2292,7 @@ void android_main(android_app *app) {
                           ANDROID_LOG_INFO, "native-activity", "time: %f ms",
                           (((1.e+0f) / (1.e+3f)) * (current_time() - start)));
                     }
+                    ATrace_endSection();
                     for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
                       m_fft_out_mag[i] = std::log((1 + std::abs(m_fft_out[i])));
                     }

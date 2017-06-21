@@ -29,7 +29,7 @@ CFLAGS="-std=c++11 -g"
 
 # g++
 "${ARM_TOOLCHAIN}"/linux-x86_64/bin/arm-linux-androideabi-g++  \
-    --sysroot="${NDK}/platforms/android-18/arch-arm" -std=c++11 -g \
+    --sysroot="${NDK}/platforms/android-18/arch-arm" -std=c++11 -Os \
     -march=armv7-a -mfpu=vfpv3-d16 -mfloat-abi=softfp -Wl,--fix-cortex-a8 \
     -no-canonical-prefixes \
     -fPIC -shared -o build/apk/lib/armeabi-v7a/libhello.so jni/hello.cpp jni/android_native_app_glue.c \
@@ -37,7 +37,8 @@ CFLAGS="-std=c++11 -g"
     -I/home/martin/and/android-ndk-r14b/sources/cxx-stl/llvm-libc++/include \
     -I/home/martin/and/android-ndk-r14b/platforms/android-23/arch-arm/usr/include
 #    -I/home/martin/and/android-ndk-r14b/sources/cxx-stl/stlport/stlport
-   
+"${ARM_TOOLCHAIN}"/linux-x86_64/bin/arm-linux-androideabi-strip -s build/apk/lib/armeabi-v7a/libhello.so
+
 #-I/home/martin/Android/Sdk/ndk-bundle/sources/cxx-stl/gnu-libstdc++/4.9/include/
 
 # CLANG++ does not support arm

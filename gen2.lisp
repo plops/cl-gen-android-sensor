@@ -8,8 +8,9 @@
 				      (cond ((stringp e) `(string ,e))
 					    (t e))) "std::endl")))
 (defparameter *ndk-facts*
-    `((10 "bla")
+    `((10 "Android Studio 3 canary 3 does not support advanced profiling of native apps.")
       ))
+;; profiling https://developer.oculus.com/documentation/mobilesdk/latest/concepts/mobile-ndk-profiler/
 ;; gyro docs https://crypto.stanford.edu/gyrophone/files/gyromic.pdf
 ;; /home/martin/and/android-ndk-r14b/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-nm apk/lib/armeabi-v7a/libhello.so
 ;; export PATH=$PATH:/data/data/com.termux/files/usr/bin ; export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/data/data/com.termux/files/usr/lib 
@@ -18,6 +19,13 @@
      ,@body
      
      (macroexpand (alog (string "time: %f ms") (* (/ 1.0 1000.0) (- (funcall current_time) start))))
+     ))
+
+(defmacro atrace (name &body body)
+  `(statements
+       (funcall ATrace_beginSection ,name)
+     ,@body
+     (funcall ATrace_endSection)
      ))
 
 (defmacro alog (&rest rest)
@@ -57,7 +65,7 @@
 	       (include <array>)
 	       (include <complex>)
                (include <sys/time.h>) ;; gettimeofday
-
+	       ;(include <android/trace.h>) ;; >= api 23
 	       (with-compilation-unit
 		   (enum Constants (M_MAG_N ,n))
 
@@ -93,6 +101,7 @@
 				    (pointer_index :type int32_t :ctor (>> (& action AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
 									   AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT))
 				    (pos_x :type int32_t :ctor (funcall AMotionEvent_getY event pointer_index)))
+				(raw "// FIXME why conversion from float to pos_x here?")
 				(if (== AMOTION_EVENT_ACTION_MOVE action)
 				    (statements
 				     
@@ -290,7 +299,7 @@
 									,(coerce (cos (/ (* pi -2) m)) 'single-float)
 									,(coerce (sin (/ (* pi -2) m)) 'single-float))))
 			     (for ((k 0) (< k N) (+= k ,m))
-				  (let ((w :type "std::complex<float>" :ctor 1))
+				  (let ((w :type "std::complex<float>" :ctor 1.0))
 				    (dotimes (j ,(/ m 2))
 				      (let ((t :ctor (* w (aref out (+ k j ,(/ m 2)))))
 					    (u :ctor (aref out (+ k j)))
@@ -362,13 +371,15 @@
 					       
 					       (if (== 0 (% m_mag_idx 16))
 						   (statements
-						    (statements (dotimes (i M_MAG_N)
-								  (setf (aref m_fft_in i) (aref m_mag i)))
-								(macroexpand (benchmark (funcall fft m_fft_in m_fft_out)))
-								(dotimes (i M_MAG_N)
-								  (setf (aref m_fft_out_mag i) #+nil (funcall "std::abs" (aref m_fft_out i)) 
-									(funcall "std::log" (+ 1 (funcall "std::abs" (aref m_fft_out i)) )
-										 ))))
+						    (statements
+						     
+						     (dotimes (i M_MAG_N)
+						       (setf (aref m_fft_in i) (aref m_mag i)))
+						     (macroexpand (benchmark (funcall fft m_fft_in m_fft_out)))
+						     (dotimes (i M_MAG_N)
+						       (setf (aref m_fft_out_mag i) #+nil (funcall "std::abs" (aref m_fft_out i)) 
+							     (funcall "std::log" (+ 1 (funcall "std::abs" (aref m_fft_out i)) )
+								      ))))
 						     
 						    #+nil(macroexpand (alog (string "fft finished")))
 						    (setf app->redrawNeeded 1)
