@@ -2216,22 +2216,34 @@ void fft(const std::array<std::complex<float>, N> &in,
 }
 #include <errno.h>
 #include <sys/socket.h>
-void net_init() {
+void *net_init(void *arg) {
   {
+    int *thread_num(static_cast<int *>(arg));
     auto sockfd(socket(AF_INET, SOCK_STREAM, 0));
     if ((-1 == sockfd)) {
       __android_log_print(ANDROID_LOG_INFO, "native-activity",
                           "socket open error: %d", errno);
     }
+    __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                        "socket open sockfd = %d in thread_num = %d", sockfd,
+                        *thread_num);
+    return nullptr;
   }
 }
+#include <pthread.h>
+#include <semaphore.h>
 void android_main(android_app *app) {
   app_dummy();
   for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
     m_fft_in[i] = (0.0e+0f);
     m_fft_out_mag[i] = (0.0e+0f);
   }
-  net_init();
+  {
+    pthread_t thread_1;
+    int thread_num_1(1);
+    auto ret(pthread_create(&thread_1, nullptr, net_init,
+                            static_cast<void *>(&thread_num_1)));
+  }
   {
     userdata_t data({0});
     auto sensor_manager(ASensorManager_getInstance());

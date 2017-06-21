@@ -311,21 +311,31 @@
 
 
 	       (with-compilation-unit
+		   ;; https://stackoverflow.com/questions/6033581/using-socket-in-android-ndk
+		   ;; https://github.com/wzbo/Android-NDK-Socket/blob/master/sample/app/src/main/jni/tcomm.c
+		   ;; https://github.com/mcxiaoke/android-ndk-notes/blob/master/posix-tcp-socket/src/main/jni/com_example_hellojni_Native.h
 		   (include <sys/socket.h>)
 		 (include <errno.h>)
-		(function (net_init () void)
-			  (let ((sockfd :ctor (funcall socket AF_INET SOCK_STREAM 0)))
+		(function (net_init ((arg :type void*)) void*)
+			  (let ((thread_num :type int* :ctor (funcall static_cast<int*> arg))
+				(sockfd :ctor (funcall socket AF_INET SOCK_STREAM 0)))
 			    (if (== -1 sockfd)
 				(statements
-				 (macroexpand (alog (string "socket open error: %d") errno)))))))
-	       
+				 (macroexpand (alog (string "socket open error: %d") errno))))
+			    (macroexpand (alog (string "socket open sockfd = %d in thread_num = %d") sockfd *thread_num))
+			    (return nullptr))))
+	       (include <pthread.h>)
+	       (include <semaphore.h>)
 	       (function (android_main ((app :type android_app*))
 				       void)
 			 (funcall app_dummy)
 			 (dotimes (i M_MAG_N)
 			   (setf (aref m_fft_in i) 0.0
 				 (aref m_fft_out_mag i) 0.0))
-			 (funcall net_init)
+			 (let ((thread_1 :type pthread_t)
+			       (thread_num_1 :type int :ctor 1)
+			       (ret :ctor (funcall pthread_create &thread_1 nullptr net_init (funcall static_cast<void*> &thread_num_1)))))
+			 
 			 (let ((data :type userdata_t :ctor (list 0))
 			       (sensor_manager :ctor (funcall ASensorManager_getInstance))
 			       (looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))
