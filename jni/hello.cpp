@@ -2245,17 +2245,20 @@ public:
     {
       socklen_t len(sizeof(m_addr));
       m_conn_fd = ::accept(m_fd, reinterpret_cast<sockaddr *>(&m_addr), &len);
-      aassert
+      if ((!((0 < m_conn_fd)))) {
+        __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                            "assertion (< 0 m_conn_fd) failed");
+      }
     }
   }
   void close() { ::close(m_fd); }
   template <std::size_t N> int send(std::array<unsigned char, N> data) {
     {
-      auto bytes_send(0);
+      auto bytes_sent(0);
       auto bytes_left(N);
       while ((0 < bytes_left)) {
         {
-          auto bytes(::send(m_conn_fd, (&(data[bytes_send])), bytes_left, 0));
+          auto bytes(::send(m_conn_fd, (&(data[bytes_sent])), bytes_left, 0));
           bytes_left -= bytes;
           bytes_sent += bytes;
         }
