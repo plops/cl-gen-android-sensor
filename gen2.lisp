@@ -330,22 +330,61 @@ is replaced with replacement."
 					      w (* w w_m)))))))))
 		       ))
 
+	       (with-compilation-unit
+		   ;; https://codereview.stackexchange.com/questions/84109/a-multi-threaded-producer-consumer-with-c11
 
+		   (include <thread>)
+		 (include <deque>)
+		 (include <condition_variable>)
+		 (class buffer_t ()
+			(access-specifier :private)
+			(decl ((m_mutex :type "std::mutex")
+			       (m_cond :type "std::condition_variable")
+			       (m_buffer :type "std::deque<int>")
+			       (m_size :type "const unsigned int" :init 10)))
+			(access-specifier :public)
+			(function (add ((num :type int)) void)
+				  (while true
+				    (let ((locker :type "std::unique_lock<std::mutex>" :ctor m_mutex))
+				      (funcall m_cond.wait
+					       locker
+					       (lambda (() :captures (this))
+						 (return (< (funcall m_buffer.size) m_size))))
+				      (funcall m_buffer.push_back num)
+				      (funcall locker.unlock)
+				      (funcall m_cond.notify_all)
+				      (return))))
+			(function (remove () int)
+				  (while true
+				    (let ((locker :type "std::unique_lock<std::mutex>" :ctor m_mutex))
+				      (funcall m_cond.wait
+					       locker
+					       (lambda (() :captures (this))
+						 (return (< 0 (funcall m_buffer.size)))))
+				      (let ((back :ctor (funcall m_buffer.back)))
+					(funcall m_buffer.pop_back)
+					
+					(funcall locker.unlock)
+					(funcall m_cond.notify_all)
+					(return back)))))))
 	       (with-compilation-unit
 		   ;; https://stackoverflow.com/questions/6033581/using-socket-in-android-ndk
 		   ;; https://github.com/wzbo/Android-NDK-Socket/blob/master/sample/app/src/main/jni/tcomm.c
 		   ;; https://github.com/mcxiaoke/android-ndk-notes/blob/master/posix-tcp-socket/src/main/jni/com_example_hellojni_Native.h
 		   ;; github.com/plops/c_net
+
+		   
 		   (include <sys/socket.h>)
 		 (include <arpa/inet.h>) ;; sockaddr_in 
 		 (include <errno.h>)
 		 (include <netinet/in.h>)
 		 (include <unistd.h>)
 		 (class net_t ()
-			(access-specifier :public)
+			(access-specifier :private)
 			(decl ((m_fd :type int)
 			       (m_conn_fd :type int)
 			       (m_addr :type sockaddr_in)))
+			(access-specifier :public)
 			(function (net_t ((port :type int :default 1234)) nil)
 				  (setf m_fd (funcall socket AF_INET SOCK_STREAM IPPROTO_TCP)
 					m_addr.sin_family AF_INET

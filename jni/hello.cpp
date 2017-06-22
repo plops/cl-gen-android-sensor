@@ -2214,17 +2214,58 @@ void fft(const std::array<std::complex<float>, N> &in,
     }
   }
 }
+#include <condition_variable>
+#include <deque>
+#include <thread>
+class buffer_t {
+private:
+  std::mutex m_mutex;
+  std::condition_variable m_cond;
+  std::deque<int> m_buffer;
+  const unsigned int m_size = 10;
+
+public:
+  void add(int num) {
+    while (true) {
+      {
+        std::unique_lock<std::mutex> locker(m_mutex);
+        m_cond.wait(locker, [this]() { return (m_buffer.size() < m_size); });
+        m_buffer.push_back(num);
+        locker.unlock();
+        m_cond.notify_all();
+        return;
+      }
+    }
+  }
+  int remove() {
+    while (true) {
+      {
+        std::unique_lock<std::mutex> locker(m_mutex);
+        m_cond.wait(locker, [this]() { return (0 < m_buffer.size()); });
+        {
+          auto back(m_buffer.back());
+          m_buffer.pop_back();
+          locker.unlock();
+          m_cond.notify_all();
+          return back;
+        }
+      }
+    }
+  }
+};
+
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 class net_t {
-public:
+private:
   int m_fd;
   int m_conn_fd;
   sockaddr_in m_addr;
 
+public:
   net_t(int port = 1234) {
     m_fd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     m_addr.sin_family = AF_INET;
