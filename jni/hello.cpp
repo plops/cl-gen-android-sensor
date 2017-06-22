@@ -2241,6 +2241,7 @@ public:
                           "assertion (< 0 (funcall listen m_fd 10)) failed");
     }
   }
+  ~net_t() { close(); }
   void accept() {
     {
       socklen_t len(sizeof(m_addr));
@@ -2268,19 +2269,16 @@ public:
   }
 };
 
-void *net_init(void *arg) {
+void *net_thread(void *arg) {
   {
-    int *thread_num(static_cast<int *>(arg));
-    auto sockfd(socket(AF_INET, SOCK_STREAM, 0));
-    if ((-1 == sockfd)) {
-      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                          "socket open error: %d", errno);
+    net_t net;
+    net.accept();
+    {
+      std::array<unsigned char, 6> msg({"hello"});
+      net.send(msg);
     }
-    __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                        "socket open sockfd = %d in thread_num = %d", sockfd,
-                        *thread_num);
-    return nullptr;
   }
+  return nullptr;
 }
 #include <pthread.h>
 #include <semaphore.h>
@@ -2293,7 +2291,7 @@ void android_main(android_app *app) {
   {
     pthread_t thread_1;
     int thread_num_1(1);
-    auto ret(pthread_create(&thread_1, nullptr, net_init,
+    auto ret(pthread_create(&thread_1, nullptr, net_thread,
                             static_cast<void *>(&thread_num_1)));
   }
   {
