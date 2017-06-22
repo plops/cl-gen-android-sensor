@@ -2409,9 +2409,7 @@ void android_main(android_app *app) {
                     m_mag[m_mag_idx] = mag;
                     m_mag_idx = ((m_mag_idx + 1) % M_MAG_N);
                     mt_produce(std::ref(mt_buffer),
-                               static_cast<int>((100 * mag)));
-                    __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                        "mag: %f", mag);
+                               static_cast<int>((1000 * mag)));
                     if ((0 == (m_mag_idx % 8))) {
                       for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
                         m_mag2[i] = m_mag[i];

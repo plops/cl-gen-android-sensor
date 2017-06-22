@@ -519,8 +519,8 @@ is replaced with replacement."
 					;(aref m_mag (% (+ 1 m_mag_idx) M_MAG_N)) 0.0
 						       m_mag_idx (% (+ m_mag_idx 1)
 								    M_MAG_N))
-						 (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 100 mag)))
-						 (macroexpand (alog (string "mag: %f") mag))
+						 (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 1000 mag)))
+						 #+nil (macroexpand (alog (string "mag: %f") mag))
 						 (if (== 0 (% m_mag_idx 8))
 						     (statements
 						      (dotimes (i M_MAG_N)
