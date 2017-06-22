@@ -89,22 +89,27 @@ is replaced with replacement."
 	       ;; (include <android/native_window_jni.h>)
 	       ;; (include <android/native_window.h>)
 	       (include <android/sensor.h>)
-	       (include <cmath>)
+	       #+fft (include <cmath>)
 	       (include <algorithm>)
 	       (include <array>)
-	       (include <complex>)
+	       #+fft (include <complex>)
                (include <sys/time.h>) ;; gettimeofday
 	       ;(include <android/trace.h>) ;; >= api 23
 	       (with-compilation-unit
 		   (enum Constants (M_MAG_N ,n))
 
-		 (decl ((m_previous_x :type int :ctor -1)
-			((aref m_mag M_MAG_N) :type float :init (list ,@ (loop for i below n collect 0.0)))
-			((aref m_mag2 M_MAG_N) :type float :init (list ,@ (loop for i below n collect 0.0)))
-			(m_mag_idx :type int :init 0)
+		 
+		 #+fft
+		 (decl (
+			
 			(m_fft_in :type "std::array<std::complex<float>,M_MAG_N>"  :init (list (list ,@ (loop for i below n collect 0.0))))
 			(m_fft_out :type "std::array<std::complex<float>,M_MAG_N>"  :init (list (list ,@ (loop for i below n collect 0.0))))
 			(m_fft_out_mag :type "std::array<float,M_MAG_N>" :init (list (list ,@ (loop for i below n collect 0.0))))
+			))
+		 (decl ((m_previous_x :type int :ctor -1)
+			((aref m_mag M_MAG_N) :type float :init (list ,@ (loop for i below n collect 0.0)))
+			(m_mag_idx :type int :init 0)
+			((aref m_mag2 M_MAG_N) :type float :init (list ,@ (loop for i below n collect 0.0)))
 			)))
 	        (function (current_time () "static inline uint64_t")
                                          
@@ -253,6 +258,7 @@ is replaced with replacement."
 				     (funcall draw_line buf xx0 (/ yy0 4) xx1 (/ yy1 4) 255 0 0 255)
 				     
 				     ))
+				 #+fft
 				 (let ((mi :ctor (aref m_fft_out_mag 0))
 				       (ma :ctor (aref m_fft_out_mag 0)))
 				   (dotimes (i (funcall m_fft_out_mag.size))
@@ -312,12 +318,14 @@ is replaced with replacement."
 						 (aref in n))))))
 	       
 	       ;; https://en.wikipedia.org/wiki/Cooley%E2%80%93Tukey_FFT_algorithm
+	       #+fft
                (function  (bit_reverse_copy ((in :type "const std::array<std::complex<float>, N > &")
                                              (out :type "std::array<std::complex<float>, N > &"))
                                             "template<std::size_t N > void")
                           (setf ,@(loop for i below n appending
 				       `((aref out ,(rev i n)) (aref in ,i)))))
-               (function 
+               #+fft
+	       (function 
 		(fft ((in :type "const std::array<std::complex<float>, N > &")
 		      (out :type "std::array<std::complex<float>, N > &"))
 		     "template<std::size_t N > void")
@@ -471,6 +479,7 @@ is replaced with replacement."
 	       (function (android_main ((app :type android_app*))
 				       void)
 			 (funcall app_dummy)
+			 #+fft
 			 (dotimes (i M_MAG_N)
 			   (setf (aref m_fft_in i) 0.0
 				 (aref m_fft_out_mag i) 0.0))
@@ -485,7 +494,7 @@ is replaced with replacement."
 			   
 			   
 			   (let ((data :type userdata_t :ctor (list 0))
-				 (sensor_manager :ctor (funcall ASensorManager_getInstance))
+				 (sensor_manager :ctor (funcall ASensorManager_getInstanceForPackage nullptr))
 				 (looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))
 			     (macroexpand (aassert (!= nullptr looper)))
 			     (macroexpand (aassert (!= nullptr sensor_manager)))
@@ -539,14 +548,14 @@ is replaced with replacement."
 						      )
 						     )
 						 
-						 #+nil (if (== 0 (% m_mag_idx 16))
+						 #+fft (if (== 0 (% m_mag_idx 16))
 							   (statements
 							    (statements
 							     
-							     #+nil (dotimes (i M_MAG_N)
+							      (dotimes (i M_MAG_N)
 								     (setf (aref m_fft_in i) (aref m_mag i)))
-							     #+nil (macroexpand (benchmark (funcall fft m_fft_in m_fft_out)))
-							     #+nil (dotimes (i M_MAG_N)
+							      (macroexpand (benchmark (funcall fft m_fft_in m_fft_out)))
+							      (dotimes (i M_MAG_N)
 								     (setf (aref m_fft_out_mag i) #+nil (funcall "std::abs" (aref m_fft_out i)) 
 									   (funcall "std::log" (+ 1 (funcall "std::abs" (aref m_fft_out i)) )
 										    ))))
