@@ -2214,46 +2214,6 @@ void fft(const std::array<std::complex<float>, N> &in,
     }
   }
 }
-#include <condition_variable>
-#include <deque>
-#include <thread>
-class buffer_t {
-private:
-  std::mutex m_mutex;
-  std::condition_variable m_cond;
-  std::deque<int> m_buffer;
-  const unsigned int m_size = 10;
-
-public:
-  void add(int num) {
-    while (true) {
-      {
-        std::unique_lock<std::mutex> locker(m_mutex);
-        m_cond.wait(locker, [this]() { return (m_buffer.size() < m_size); });
-        m_buffer.push_back(num);
-        locker.unlock();
-        m_cond.notify_all();
-        return;
-      }
-    }
-  }
-  int remove() {
-    while (true) {
-      {
-        std::unique_lock<std::mutex> locker(m_mutex);
-        m_cond.wait(locker, [this]() { return (0 < m_buffer.size()); });
-        {
-          auto back(m_buffer.back());
-          m_buffer.pop_back();
-          locker.unlock();
-          m_cond.notify_all();
-          return back;
-        }
-      }
-    }
-  }
-};
-
 #include <arpa/inet.h>
 #include <errno.h>
 #include <netinet/in.h>
@@ -2310,26 +2270,81 @@ public:
   }
 };
 
-void *net_thread(void *arg) {
+#include <condition_variable>
+#include <deque>
+#include <thread>
+class mt_buffer_t {
+private:
+  std::mutex m_mutex;
+  std::condition_variable m_cond;
+  std::deque<int> m_buffer;
+  const unsigned int m_size = 10;
+
+public:
+  void add(int num) {
+    while (true) {
+      {
+        std::unique_lock<std::mutex> locker(m_mutex);
+        m_cond.wait(locker, [this]() { return (m_buffer.size() < m_size); });
+        m_buffer.push_back(num);
+        locker.unlock();
+        m_cond.notify_all();
+        return;
+      }
+    }
+  }
+  int remove() {
+    while (true) {
+      {
+        std::unique_lock<std::mutex> locker(m_mutex);
+        m_cond.wait(locker, [this]() { return (0 < m_buffer.size()); });
+        {
+          auto back(m_buffer.back());
+          m_buffer.pop_back();
+          locker.unlock();
+          m_cond.notify_all();
+          return back;
+        }
+      }
+    }
+  }
+};
+
+void mt_consumer(mt_buffer_t &buffer) {
   {
     net_t net;
-    int *number(static_cast<int *>(arg));
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                        "net_thread %d started", *number);
+                        "mt_consumer thread started");
     net.accept();
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                        "net_thread %d accepted connection", *number);
-    {
-      std::array<unsigned char, 6> msg({"hello"});
-      net.send(msg);
+                        "mt_consumer accepted connection");
+    while (true) {
+      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                          "mt_consumer waits for value");
+      {
+        auto value(buffer.remove());
+        __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                            "mt_consumer obtained value = %d", value);
+        {
+          std::array<unsigned char, 4> msg(
+              {static_cast<unsigned char>(((value >> 0) & 0xFF)),
+               static_cast<unsigned char>(((value >> 8) & 0xFF)),
+               static_cast<unsigned char>(((value >> 16) & 0xFF)),
+               static_cast<unsigned char>(((value >> 24) & 0xFF))});
+          net.send(msg);
+          __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                              "mt_consumer sent value = %d", value);
+        }
+      }
     }
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                        "net_thread %d finished", *number);
+                        "mt_consumer finished");
   }
-  return nullptr;
 }
-#include <pthread.h>
-#include <semaphore.h>
+void mt_produce(mt_buffer_t &buffer, int value) {
+  buffer.add(value);
+  __android_log_print(ANDROID_LOG_INFO, "native-activity", "produce %d", value);
+}
 void android_main(android_app *app) {
   app_dummy();
   for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
@@ -2337,86 +2352,87 @@ void android_main(android_app *app) {
     m_fft_out_mag[i] = (0.0e+0f);
   }
   {
-    pthread_t thread_1;
-    int thread_num_1(1);
-    auto ret(pthread_create(&thread_1, nullptr, net_thread,
-                            static_cast<void *>(&thread_num_1)));
-  }
-  {
-    userdata_t data({0});
-    auto sensor_manager(ASensorManager_getInstance());
-    auto looper(ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS));
-    if ((!((nullptr != looper)))) {
-      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                          "assertion (!= nullptr looper) failed");
-    }
-    if ((!((nullptr != sensor_manager)))) {
-      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                          "assertion (!= nullptr sensor_manager) failed");
-    }
-    data.sensor_accelerometer =
-        ASensorManager_getDefaultSensor(sensor_manager, ASENSOR_TYPE_GYROSCOPE);
-    if ((!((nullptr != data.sensor_accelerometer)))) {
-      __android_log_print(
-          ANDROID_LOG_INFO, "native-activity",
-          "assertion (!= nullptr data.sensor_accelerometer) failed");
-    }
-    data.sensor_accelerometer =
-        ASensorManager_getDefaultSensor(sensor_manager, ASENSOR_TYPE_GYROSCOPE);
-    if ((!((nullptr != data.sensor_accelerometer)))) {
-      __android_log_print(
-          ANDROID_LOG_INFO, "native-activity",
-          "assertion (!= nullptr data.sensor_accelerometer) failed");
-    }
-    data.sensor_event_queue = ASensorManager_createEventQueue(
-        sensor_manager, looper, LOOPER_ID_USER, nullptr, nullptr);
-    if ((!((nullptr != data.sensor_event_queue)))) {
-      __android_log_print(
-          ANDROID_LOG_INFO, "native-activity",
-          "assertion (!= nullptr data.sensor_event_queue) failed");
-    }
-    app->userData = &data;
-    app->onAppCmd = handle_activity_lifecycle_events;
-    app->onInputEvent = handle_input_events;
-    while ((0 == app->destroyRequested)) {
-      {
-        int events;
-        android_poll_source *source;
-        int ident(ALooper_pollAll((app->redrawNeeded) ? (0) : (-1), nullptr,
-                                  &events, reinterpret_cast<void **>(&source)));
-        if ((0 <= ident)) {
-          switch (ident) {
-          case LOOPER_ID_USER: {
-            {
-              ASensorEvent event;
-              while ((0 < ASensorEventQueue_getEvents(data.sensor_event_queue,
-                                                      &event, 1))) {
-                {
-                  auto mag(event.data[2]);
-                  m_mag[m_mag_idx] = mag;
-                  m_mag_idx = ((m_mag_idx + 1) % M_MAG_N);
-                  if ((0 == (m_mag_idx % 8))) {
-                    for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
-                      m_mag2[i] = m_mag[i];
+    mt_buffer_t mt_buffer;
+    std::thread consumer1(mt_consumer, std::ref(mt_buffer));
+    {
+      userdata_t data({0});
+      auto sensor_manager(ASensorManager_getInstance());
+      auto looper(ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS));
+      if ((!((nullptr != looper)))) {
+        __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                            "assertion (!= nullptr looper) failed");
+      }
+      if ((!((nullptr != sensor_manager)))) {
+        __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                            "assertion (!= nullptr sensor_manager) failed");
+      }
+      data.sensor_accelerometer = ASensorManager_getDefaultSensor(
+          sensor_manager, ASENSOR_TYPE_GYROSCOPE);
+      if ((!((nullptr != data.sensor_accelerometer)))) {
+        __android_log_print(
+            ANDROID_LOG_INFO, "native-activity",
+            "assertion (!= nullptr data.sensor_accelerometer) failed");
+      }
+      data.sensor_accelerometer = ASensorManager_getDefaultSensor(
+          sensor_manager, ASENSOR_TYPE_GYROSCOPE);
+      if ((!((nullptr != data.sensor_accelerometer)))) {
+        __android_log_print(
+            ANDROID_LOG_INFO, "native-activity",
+            "assertion (!= nullptr data.sensor_accelerometer) failed");
+      }
+      data.sensor_event_queue = ASensorManager_createEventQueue(
+          sensor_manager, looper, LOOPER_ID_USER, nullptr, nullptr);
+      if ((!((nullptr != data.sensor_event_queue)))) {
+        __android_log_print(
+            ANDROID_LOG_INFO, "native-activity",
+            "assertion (!= nullptr data.sensor_event_queue) failed");
+      }
+      app->userData = &data;
+      app->onAppCmd = handle_activity_lifecycle_events;
+      app->onInputEvent = handle_input_events;
+      while ((0 == app->destroyRequested)) {
+        {
+          int events;
+          android_poll_source *source;
+          int ident(ALooper_pollAll((app->redrawNeeded) ? (0) : (-1), nullptr,
+                                    &events,
+                                    reinterpret_cast<void **>(&source)));
+          if ((0 <= ident)) {
+            switch (ident) {
+            case LOOPER_ID_USER: {
+              {
+                ASensorEvent event;
+                while ((0 < ASensorEventQueue_getEvents(data.sensor_event_queue,
+                                                        &event, 1))) {
+                  {
+                    auto mag(event.data[2]);
+                    m_mag[m_mag_idx] = mag;
+                    m_mag_idx = ((m_mag_idx + 1) % M_MAG_N);
+                    mt_produce(std::ref(mt_buffer),
+                               static_cast<int>((100 * mag)));
+                    if ((0 == (m_mag_idx % 8))) {
+                      for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
+                        m_mag2[i] = m_mag[i];
+                      }
+                      app->redrawNeeded = 1;
                     }
-                    app->redrawNeeded = 1;
                   }
                 }
               }
+              break;
             }
-            break;
-          }
-          default: {
-            if ((nullptr != source)) {
-              source->process(app, source);
+            default: {
+              if ((nullptr != source)) {
+                source->process(app, source);
+              }
+              break;
             }
-            break;
+            }
           }
+          if (app->redrawNeeded) {
+            drawSomething(app);
+            app->redrawNeeded = 0;
           }
-        }
-        if (app->redrawNeeded) {
-          drawSomething(app);
-          app->redrawNeeded = 0;
         }
       }
     }
