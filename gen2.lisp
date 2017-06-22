@@ -337,7 +337,7 @@ is replaced with replacement."
 		   ;; https://github.com/mcxiaoke/android-ndk-notes/blob/master/posix-tcp-socket/src/main/jni/com_example_hellojni_Native.h
 		   ;; github.com/plops/c_net
 		   (include <sys/socket.h>)
-		 (include <arpa/inet.h>) ;; sockaddr_in
+		 (include <arpa/inet.h>) ;; sockaddr_in 
 		 (include <errno.h>)
 		 (include <netinet/in.h>)
 		 (include <unistd.h>)
