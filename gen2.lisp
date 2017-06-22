@@ -520,12 +520,13 @@ is replaced with replacement."
 						       m_mag_idx (% (+ m_mag_idx 1)
 								    M_MAG_N))
 						 (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 100 mag)))
+						 (macroexpand (alog (string "mag: %f") mag))
 						 (if (== 0 (% m_mag_idx 8))
 						     (statements
 						      (dotimes (i M_MAG_N)
 							(setf (aref m_mag2 i) (aref m_mag i)))
 						      (setf app->redrawNeeded 1)
-						      ;;(macroexpand (alog (string "a: %f %f %f") (aref m_mag 0) (aref m_mag 1) (aref m_mag 2)))
+						      #+nil(macroexpand (alog (string "a: %f %f %f") (aref m_mag 0) (aref m_mag 1) (aref m_mag 2)))
 						      
 						      )
 						     )
