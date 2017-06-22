@@ -7,6 +7,14 @@
   `(statements (<< "std::cout" ,@(loop for e in body collect
 				      (cond ((stringp e) `(string ,e))
 					    (t e))) "std::endl")))
+;; alternatives to serialize the sensor data for network transfer:
+;; plain text
+;; google protobuf
+;; facebook beringei
+;; thrift
+;; https://capnproto.org/
+;; flatbuffers
+;; https://kentonv.github.io/capnproto/news/2014-06-17-capnproto-flatbuffers-sbe.html
 
 (defun replace-all (string part replacement &key (test #'char=))
 "Returns a new string in which all the occurences of the part 
