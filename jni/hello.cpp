@@ -2272,11 +2272,18 @@ public:
 void *net_thread(void *arg) {
   {
     net_t net;
+    int *number(static_cast<int *>(arg));
+    __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                        "net_thread %d started", *number);
     net.accept();
+    __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                        "net_thread %d accepted connection", *number);
     {
       std::array<unsigned char, 6> msg({"hello"});
       net.send(msg);
     }
+    __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                        "net_thread %d finished", *number);
   }
   return nullptr;
 }
@@ -2350,22 +2357,6 @@ void android_main(android_app *app) {
                   if ((0 == (m_mag_idx % 8))) {
                     for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
                       m_mag2[i] = m_mag[i];
-                    }
-                    app->redrawNeeded = 1;
-                  }
-                  if ((0 == (m_mag_idx % 16))) {
-                    for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
-                      m_fft_in[i] = m_mag[i];
-                    }
-                    {
-                      auto start(current_time());
-                      fft(m_fft_in, m_fft_out);
-                      __android_log_print(
-                          ANDROID_LOG_INFO, "native-activity", "time: %f ms",
-                          (((1.e+0f) / (1.e+3f)) * (current_time() - start)));
-                    }
-                    for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
-                      m_fft_out_mag[i] = std::log((1 + std::abs(m_fft_out[i])));
                     }
                     app->redrawNeeded = 1;
                   }
