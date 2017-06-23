@@ -16,6 +16,9 @@
 ;; flatbuffers
 ;; https://kentonv.github.io/capnproto/news/2014-06-17-capnproto-flatbuffers-sbe.html
 
+;; read multiple sensors:
+;; https://stackoverflow.com/questions/8989686/access-faster-polling-accelerometer-via-nativeactivity-ndk/10494475
+
 (defun replace-all (string part replacement &key (test #'char=))
 "Returns a new string in which all the occurences of the part 
 is replaced with replacement."
@@ -100,6 +103,7 @@ is replaced with replacement."
 		#+fft (include <complex>)
 		(include <sys/time.h>) ;; gettimeofday
 					;(include <android/trace.h>) ;; >= api 23
+		;;(include <inttypes.h>)
 		(with-compilation-unit
 		    (enum Constants (M_MAG_N ,n))
 
@@ -295,18 +299,22 @@ is replaced with replacement."
 			     )
 			    (APP_CMD_GAINED_FOCUS
 			     (let ((data :ctor (funcall reinterpret_cast<userdata_t*> app->userData)))
-			       (if (!= nullptr data->sensor_accelerometer)
-				   (statements
-				    (funcall ASensorEventQueue_enableSensor data->sensor_event_queue data->sensor_accelerometer)
-				    (funcall ASensorEventQueue_setEventRate data->sensor_event_queue data->sensor_accelerometer
-					     (* (/ (raw "1000L") 5000 ; 60
-						   )					       1000))))))
+			       ,@(loop for e in sensors collect
+				       (let ((sensor (format nil "data->sensor_~a" e)))
+					`(if (!= nullptr ,sensor)
+					     (statements
+					      (funcall ASensorEventQueue_enableSensor data->sensor_event_queue ,sensor)
+					      (funcall ASensorEventQueue_setEventRate data->sensor_event_queue ,sensor
+						       (* (/ (raw "1000L") 5000 ; 60
+							     )					       1000))))))))
 			    (APP_CMD_LOST_FOCUS
 			     (let ((data :ctor (funcall reinterpret_cast<userdata_t*> app->userData)))
-			       (if (!= nullptr data->sensor_accelerometer)
-				   (statements
-				    (funcall ASensorEventQueue_disableSensor data->sensor_event_queue data->sensor_accelerometer)
-				    ))))))
+			       ,@(loop for e in sensors collect
+				       (let ((sensor (format nil "data->sensor_~a" e)))
+					`(if (!= nullptr ,sensor)
+					     (statements
+					      (funcall ASensorEventQueue_disableSensor data->sensor_event_queue ,sensor
+						       )))))))))
 		#+nil
 		(function (ft ((in :type "const std::array<std::complex<float>, N > &" )
 			       (out :type "std::array<std::complex<float>, N > &" ))
@@ -366,6 +374,7 @@ is replaced with replacement."
 		  (include <errno.h>)
 		  (include <netinet/in.h>)
 		  (include <unistd.h>)
+		  
 		  (class net_t ()
 			 (access-specifier :private)
 			 (decl ((m_fd :type int)
@@ -537,8 +546,15 @@ is replaced with replacement."
 					    (let ((event :type ASensorEvent))
 					      (while (< 0 (funcall ASensorEventQueue_getEvents data.sensor_event_queue &event 1))
 						(case event.type
-						    (ASENSOR_TYPE_ACCELEROMETER
-						     (macroexpand (alog (string "acc: %lld %+6.5f") event.timestamp event.acceleration.x))))
+						  ,@(loop for (e f) in '((accelerometer event.acceleration.x)
+								       (gyroscope (aref event.data 0))
+									 (magnetic_field event.magnetic.x))
+						       collect
+							 `(,(string-upcase (format nil "ASENSOR_TYPE_~a" e))
+							    (macroexpand (alog #+nil (with-compilation-unit (string "acc: ") PRId64 (string " %+6.5f"))
+									       (string ,(format nil "~a %lld %+6.5f" e))
+									       (funcall "static_cast<long long>" event.timestamp) ,f))))
+						  )
 						#+nil (statements ;let ((time :ctor (funcall get_time)))
 						       (funcall __android_log_print ANDROID_LOG_INFO
 								(string "native-activity")

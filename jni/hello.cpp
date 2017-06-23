@@ -450,6 +450,20 @@ void handle_activity_lifecycle_events(struct android_app *app, int32_t cmd) {
                                        data->sensor_accelerometer,
                                        ((1000L / 5000) * 1000));
       }
+      if ((nullptr != data->sensor_magnetic_field)) {
+        ASensorEventQueue_enableSensor(data->sensor_event_queue,
+                                       data->sensor_magnetic_field);
+        ASensorEventQueue_setEventRate(data->sensor_event_queue,
+                                       data->sensor_magnetic_field,
+                                       ((1000L / 5000) * 1000));
+      }
+      if ((nullptr != data->sensor_gyroscope)) {
+        ASensorEventQueue_enableSensor(data->sensor_event_queue,
+                                       data->sensor_gyroscope);
+        ASensorEventQueue_setEventRate(data->sensor_event_queue,
+                                       data->sensor_gyroscope,
+                                       ((1000L / 5000) * 1000));
+      }
     }
     break;
   }
@@ -459,6 +473,14 @@ void handle_activity_lifecycle_events(struct android_app *app, int32_t cmd) {
       if ((nullptr != data->sensor_accelerometer)) {
         ASensorEventQueue_disableSensor(data->sensor_event_queue,
                                         data->sensor_accelerometer);
+      }
+      if ((nullptr != data->sensor_magnetic_field)) {
+        ASensorEventQueue_disableSensor(data->sensor_event_queue,
+                                        data->sensor_magnetic_field);
+      }
+      if ((nullptr != data->sensor_gyroscope)) {
+        ASensorEventQueue_disableSensor(data->sensor_event_queue,
+                                        data->sensor_gyroscope);
       }
     }
     break;
@@ -660,8 +682,23 @@ void android_main(android_app *app) {
                   switch (event.type) {
                   case ASENSOR_TYPE_ACCELEROMETER: {
                     __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                        "acc: %lld %+6.5f", event.timestamp,
+                                        "accelerometer %lld %+6.5f",
+                                        static_cast<long long>(event.timestamp),
                                         event.acceleration.x);
+                    break;
+                  }
+                  case ASENSOR_TYPE_GYROSCOPE: {
+                    __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                        "gyroscope %lld %+6.5f",
+                                        static_cast<long long>(event.timestamp),
+                                        event.data[0]);
+                    break;
+                  }
+                  case ASENSOR_TYPE_MAGNETIC_FIELD: {
+                    __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                        "magnetic_field %lld %+6.5f",
+                                        static_cast<long long>(event.timestamp),
+                                        event.magnetic.x);
                     break;
                   }
                   }
