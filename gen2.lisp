@@ -438,14 +438,15 @@ is replaced with replacement."
 		    (include <thread>)
 		  (include <deque>)
 		  (include <condition_variable>)
+		  (raw "template<typename T>")
 		  (class mt_buffer_t ()
 			 (access-specifier :private)
 			 (decl ((m_mutex :type "std::mutex")
 				(m_cond :type "std::condition_variable")
-				(m_buffer :type "std::deque<int>")
+				(m_buffer :type "std::deque<T>")
 				(m_size :type "const unsigned int" :init 10)))
 			 (access-specifier :public)
-			 (function (add ((num :type int)) void)
+			 (function (add ((num :type T)) void)
 				   (while true
 				     (let ((locker :type "std::unique_lock<std::mutex>" :ctor m_mutex))
 				       (funcall m_cond.wait
@@ -456,7 +457,7 @@ is replaced with replacement."
 				       (funcall locker.unlock)
 				       (funcall m_cond.notify_all)
 				       (return))))
-			 (function (remove () int)
+			 (function (remove () T)
 				   (while true
 				     (let ((locker :type "std::unique_lock<std::mutex>" :ctor m_mutex))
 				       (funcall m_cond.wait
@@ -470,7 +471,7 @@ is replaced with replacement."
 					 (funcall m_cond.notify_all)
 					 (return back))))))
 
-		  (function (mt_consumer ((buffer :type mt_buffer_t&)) void)
+		  (function (mt_consumer ((buffer :type "mt_buffer_t<T>&")) "template<typename T> void")
 			    (let ((net :type net_t))
 			      (macroexpand (alog (string "mt_consumer thread started")))
 			      (funcall net.accept)
@@ -478,13 +479,13 @@ is replaced with replacement."
 			      (while true
 				(macroexpand (alog (string "mt_consumer waits for value")))
 				(let ((value :ctor (funcall buffer.remove)))
-				  (macroexpand (alog (string "mt_consumer obtained value = %d") value))
-				  (let ((msg :type "std::array<unsigned char,4>"
+				  #+nil (macroexpand (alog (string "mt_consumer obtained value = %d") value))
+				  (statements #+nil ((msg :type "std::array<unsigned char,4>"
 					     :ctor (list 
 						    ,@(loop for i below 4 collect `(funcall "static_cast<unsigned char>" (& (>> value ,(* i 8)) (hex #xff))))
 						    )))
-				    (funcall net.send msg)
-				    (macroexpand (alog (string "mt_consumer sent value = %d") value)))))
+				    (funcall net.send value)
+				    #+nil(macroexpand (alog (string "mt_consumer sent value = %d") value)))))
 			      (macroexpand (alog (string "mt_consumer finished")))))
 		  
 		  
@@ -495,148 +496,143 @@ is replaced with replacement."
 				(macroexpand (alog (string "consumer id = %d obtained %d") id value)))))
 
 
-		  (function (mt_produce ((buffer :type mt_buffer_t&) (value :type int)) void)
+		  (function (mt_produce ((buffer :type "mt_buffer_t<T>&") (value :type "const T&")) "template<typename T> void")
 			    (funcall buffer.add value)
 			    (macroexpand (alog (string "produce %d") value))))
-		
-		(function (android_main ((app :type android_app*))
-					void)
-			  (funcall app_dummy)
-			  #+fft
-			  (dotimes (i M_MAG_N)
-			    (setf (aref m_fft_in i) 0.0
-				  (aref m_fft_out_mag i) 0.0))
+		,(let ((msg-n (+ 4 12 1 12 1 12 1 12  1)))
+		  `(function (android_main ((app :type android_app*))
+					  void)
+			    (funcall app_dummy)
+			    #+fft
+			    (dotimes (i M_MAG_N)
+			      (setf (aref m_fft_in i) 0.0
+				    (aref m_fft_out_mag i) 0.0))
 
-			  #+nil (let ((thread_1 :type pthread_t)
-				      (thread_num_1 :type int :ctor 1)
-				      (ret :ctor (funcall pthread_create &thread_1 nullptr net_thread (funcall static_cast<void*> &thread_num_1)))))
+			    #+nil (let ((thread_1 :type pthread_t)
+					(thread_num_1 :type int :ctor 1)
+					(ret :ctor (funcall pthread_create &thread_1 nullptr net_thread (funcall static_cast<void*> &thread_num_1)))))
 			  
-			  (let ((mt_buffer :type mt_buffer_t)
-				(consumer1 :type "std::thread" :ctor (comma-list mt_consumer (funcall "std::ref" mt_buffer))))
+			    (let ((mt_buffer :type ,(format nil "mt_buffer_t<~a>" (format nil "std::array<char,~a>" msg-n)))
+				  (consumer1 :type "std::thread" :ctor (comma-list mt_consumer (funcall "std::ref" mt_buffer))))
 			    
 			    
 			    
-			    (let ((data :type userdata_t :ctor (list 0))
-				  (sensor_manager :ctor #+nil
-						  (funcall ASensorManager_getInstanceForPackage nullptr)
-						  (funcall ASensorManager_getInstance))
-				  (looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))
-			      (macroexpand (aassert (!= nullptr looper)))
-			      (macroexpand (aassert (!= nullptr sensor_manager)))
-			      ,@ (loop for e in sensors appending
-				      (let ((var (format nil "data.sensor_~a" e)))
-					`((setf ,var (funcall ASensorManager_getDefaultSensor sensor_manager ,(string-upcase (format nil "ASENSOR_TYPE_~A" e))))
-					  (if (!= nullptr ,var)
-					      (statements
-					       (funcall __android_log_print ANDROID_LOG_INFO
-							(string "native-activity")
-							(string ,(format nil "error in getDefaultSensor ~a" var))
-							)))
-					  #+nil (macroexpand (aassert (!= nullptr ,var))))))
-			      (setf  data.sensor_event_queue (funcall ASensorManager_createEventQueue sensor_manager looper LOOPER_ID_USER nullptr nullptr))
-			      (macroexpand (aassert (!= nullptr data.sensor_event_queue)))
+			      (let ((data :type userdata_t :ctor (list 0))
+				    (sensor_manager :ctor #+nil
+						    (funcall ASensorManager_getInstanceForPackage nullptr)
+						    (funcall ASensorManager_getInstance))
+				    (looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))
+				(macroexpand (aassert (!= nullptr looper)))
+				(macroexpand (aassert (!= nullptr sensor_manager)))
+				,@ (loop for e in sensors appending
+					(let ((var (format nil "data.sensor_~a" e)))
+					  `((setf ,var (funcall ASensorManager_getDefaultSensor sensor_manager ,(string-upcase (format nil "ASENSOR_TYPE_~A" e))))
+					    (if (!= nullptr ,var)
+						(statements
+						 (funcall __android_log_print ANDROID_LOG_INFO
+							  (string "native-activity")
+							  (string ,(format nil "error in getDefaultSensor ~a" var))
+							  )))
+					    #+nil (macroexpand (aassert (!= nullptr ,var))))))
+				(setf  data.sensor_event_queue (funcall ASensorManager_createEventQueue sensor_manager looper LOOPER_ID_USER nullptr nullptr))
+				(macroexpand (aassert (!= nullptr data.sensor_event_queue)))
 			      
 			      
 			      
-			      (setf app->userData &data
-				    app->onAppCmd handle_activity_lifecycle_events
-				    app->onInputEvent handle_input_events)
-			      (while (== 0 app->destroyRequested)
-				(let ((events :type int)
-				      (source :type android_poll_source*)
-				      (ident :type int :ctor (funcall ALooper_pollAll (? app->redrawNeeded 0 -1)
-								      nullptr &events
-								      (funcall reinterpret_cast<void**> &source))))
-				  (if (<= 0 ident)
-				      (statements
-				       (case ident
-					 (LOOPER_ID_USER
-					    (let ((event :type ASensorEvent))
-					      (while (< 0 (funcall ASensorEventQueue_getEvents data.sensor_event_queue &event 1))
-						(case event.type
-						  ,@(loop for (e f g h) in '((accelerometer event.acceleration.x event.acceleration.y event.acceleration.z)
-								       (gyroscope (aref event.data 0) (aref event.data 1) (aref event.data 2))
-									 (magnetic_field event.magnetic.x event.magnetic.y event.magnetic.z))
-						       collect
-							 `(,(string-upcase (format nil "ASENSOR_TYPE_~a" e))
-							    (raw "// timestamp is in nanoseconds")
-							    #+nil (let ((s :type "std::stringstream"))
-							      (<< s
-								  (string ,(subseq (format nil "~a " e) 0 3))
-								  (funcall "std::setw" 12) event.timestamp (string " ")
-								  (funcall "std::setw" 12) ,f (string " ")
-								  (funcall "std::setw" 12) ,g (string " ")
-								  (funcall "std::setw" 12) ,h)
-							      (macroexpand (alog (funcall s.c_str))))
+				(setf app->userData &data
+				      app->onAppCmd handle_activity_lifecycle_events
+				      app->onInputEvent handle_input_events)
+				(while (== 0 app->destroyRequested)
+				  (let ((events :type int)
+					(source :type android_poll_source*)
+					(ident :type int :ctor (funcall ALooper_pollAll (? app->redrawNeeded 0 -1)
+									nullptr &events
+									(funcall reinterpret_cast<void**> &source))))
+				    (if (<= 0 ident)
+					(statements
+					 (case ident
+					   (LOOPER_ID_USER
+					      (let ((event :type ASensorEvent))
+						(while (< 0 (funcall ASensorEventQueue_getEvents data.sensor_event_queue &event 1))
+						  (case event.type
+						    ,@(loop for (e f g h) in '((accelerometer event.acceleration.x event.acceleration.y event.acceleration.z)
+									       (gyroscope (aref event.data 0) (aref event.data 1) (aref event.data 2))
+									       (magnetic_field event.magnetic.x event.magnetic.y event.magnetic.z))
+							 collect
+							   `(,(string-upcase (format nil "ASENSOR_TYPE_~a" e))
+							      (raw "// timestamp is in nanoseconds")
+							      #+nil (let ((s :type "std::stringstream"))
+								      (<< s
+									  (string ,(subseq (format nil "~a " e) 0 3))
+									  (funcall "std::setw" 12) event.timestamp (string " ")
+									  (funcall "std::setw" 12) ,f (string " ")
+									  (funcall "std::setw" 12) ,g (string " ")
+									  (funcall "std::setw" 12) ,h)
+								      (macroexpand (alog (funcall s.c_str))))
 
-							    ,(let ((n (+ 4 12 1 12 1 12 1 12  1)))
-							     `(let (
-								   (s :type ,(format nil "std::array<char,~a>" n)))
-							       (funcall snprintf (funcall s.data) ,n (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f"
-												       (subseq (format nil "~a" e) 0 3)))
-									(funcall "static_cast<long long>" event.timestamp) ,f ,g ,h)
-							       #+nil (<< s
-									 (string ,(subseq (format nil "~a " e) 0 3))
-									 (funcall "std::setw" 12) event.timestamp (string " ")
-									 (funcall "std::setw" 12) ,f (string " ")
-									 (funcall "std::setw" 12) ,g (string " ")
-									 (funcall "std::setw" 12) ,h)
-							       (macroexpand (alog (string "%s") (funcall s.data)))))
-							    #+nil
-							    (macroexpand (alog 
-									       (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f" (subseq (format nil "~a" e) 0 3)))
-									       (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h))))
-						  )
-						#+nil (statements ;let ((time :ctor (funcall get_time)))
-						       (funcall __android_log_print ANDROID_LOG_INFO
-								(string "native-activity")
-								(string "accel %f")
+							      (let (
+								    (s :type ,(format nil "std::array<char,~a>" msg-n)))
+								(funcall snprintf (funcall s.data) ,n (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f"
+														       (subseq (format nil "~a" e) 0 3)))
+									 (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h)
+								(funcall mt_produce (funcall "std::ref" mt_buffer) s)
+								
+								(macroexpand (alog (string "%s") (funcall s.data))))
+							      #+nil
+							      (macroexpand (alog 
+									    (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f" (subseq (format nil "~a" e) 0 3)))
+									    (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h))))
+						    )
+						  #+nil (statements ;let ((time :ctor (funcall get_time)))
+							 (funcall __android_log_print ANDROID_LOG_INFO
+								  (string "native-activity")
+								  (string "accel %f")
 					;time
-								event.acceleration.x))
-						(if (== event.type ASENSOR_TYPE_GYROSCOPE)
-						    (let ((mag :ctor (aref event.data 2) #+nil (funcall "std::sqrt" (+ (* event.acceleration.x  event.acceleration.x )
-															  (* event.acceleration.y  event.acceleration.y )
-															  (* event.acceleration.z  event.acceleration.z )))))
-							 (setf (aref m_mag m_mag_idx) mag
+								  event.acceleration.x))
+						  (if (== event.type ASENSOR_TYPE_GYROSCOPE)
+						      (let ((mag :ctor (aref event.data 2) #+nil (funcall "std::sqrt" (+ (* event.acceleration.x  event.acceleration.x )
+															 (* event.acceleration.y  event.acceleration.y )
+															 (* event.acceleration.z  event.acceleration.z )))))
+							(setf (aref m_mag m_mag_idx) mag
 					;(aref m_mag (% (+ 1 m_mag_idx) M_MAG_N)) 0.0
-							       m_mag_idx (% (+ m_mag_idx 1)
-									    M_MAG_N))
-							 #+nil (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 1000 mag)))
-							 #+nil (macroexpand (alog (string "mag: %f") mag))
-							 (if (== 0 (% m_mag_idx 8))
-							     (statements
-							      (dotimes (i M_MAG_N)
-								(setf (aref m_mag2 i) (aref m_mag i)))
-							      (setf app->redrawNeeded 1)
-							      #+nil(macroexpand (alog (string "a: %f %f %f") (aref m_mag 0) (aref m_mag 1) (aref m_mag 2)))
+							      m_mag_idx (% (+ m_mag_idx 1)
+									   M_MAG_N))
+							#+nil (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 1000 mag)))
+							#+nil (macroexpand (alog (string "mag: %f") mag))
+							(if (== 0 (% m_mag_idx 8))
+							    (statements
+							     (dotimes (i M_MAG_N)
+							       (setf (aref m_mag2 i) (aref m_mag i)))
+							     (setf app->redrawNeeded 1)
+							     #+nil(macroexpand (alog (string "a: %f %f %f") (aref m_mag 0) (aref m_mag 1) (aref m_mag 2)))
 						       
-							      )
 							     )
+							    )
 						  
-							 #+fft (if (== 0 (% m_mag_idx 16))
+							#+fft (if (== 0 (% m_mag_idx 16))
+								  (statements
 								   (statements
-								    (statements
 							      
-								     (dotimes (i M_MAG_N)
-								       (setf (aref m_fft_in i) (aref m_mag i)))
-								     (macroexpand (benchmark (funcall fft m_fft_in m_fft_out)))
-								     (dotimes (i M_MAG_N)
-								       (setf (aref m_fft_out_mag i) #+nil (funcall "std::abs" (aref m_fft_out i)) 
-									     (funcall "std::log" (+ 1 (funcall "std::abs" (aref m_fft_out i)) )
-										      ))))
+								    (dotimes (i M_MAG_N)
+								      (setf (aref m_fft_in i) (aref m_mag i)))
+								    (macroexpand (benchmark (funcall fft m_fft_in m_fft_out)))
+								    (dotimes (i M_MAG_N)
+								      (setf (aref m_fft_out_mag i) #+nil (funcall "std::abs" (aref m_fft_out i)) 
+									    (funcall "std::log" (+ 1 (funcall "std::abs" (aref m_fft_out i)) )
+										     ))))
 							     
-								    #+nil(macroexpand (alog (string "fft finished")))
-								    (setf app->redrawNeeded 1)
-								    )))))))
-					 (t
-					  (statements
-					   (if (!= nullptr source)
-					       (statements
-						(funcall source->process app source)))
-					   )))))
-				  (if app->redrawNeeded
-				      (statements
-				       (funcall drawSomething app)
-				       (setf app->redrawNeeded 0)))))))))))
+								   #+nil(macroexpand (alog (string "fft finished")))
+								   (setf app->redrawNeeded 1)
+								   )))))))
+					   (t
+					    (statements
+					     (if (!= nullptr source)
+						 (statements
+						  (funcall source->process app source)))
+					     )))))
+				    (if app->redrawNeeded
+					(statements
+					 (funcall drawSomething app)
+					 (setf app->redrawNeeded 0))))))))))))
   (write-source "/home/martin/and/src/jni/hello" "cpp" code))
 

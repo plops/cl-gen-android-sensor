@@ -562,15 +562,15 @@ public:
 #include <condition_variable>
 #include <deque>
 #include <thread>
-class mt_buffer_t {
+template <typename T> class mt_buffer_t {
 private:
   std::mutex m_mutex;
   std::condition_variable m_cond;
-  std::deque<int> m_buffer;
+  std::deque<T> m_buffer;
   const unsigned int m_size = 10;
 
 public:
-  void add(int num) {
+  void add(T num) {
     while (true) {
       {
         std::unique_lock<std::mutex> locker(m_mutex);
@@ -582,7 +582,7 @@ public:
       }
     }
   }
-  int remove() {
+  T remove() {
     while (true) {
       {
         std::unique_lock<std::mutex> locker(m_mutex);
@@ -599,7 +599,7 @@ public:
   }
 };
 
-void mt_consumer(mt_buffer_t &buffer) {
+template <typename T> void mt_consumer(mt_buffer_t<T> &buffer) {
   {
     net_t net;
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
@@ -612,32 +612,21 @@ void mt_consumer(mt_buffer_t &buffer) {
                           "mt_consumer waits for value");
       {
         auto value(buffer.remove());
-        __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                            "mt_consumer obtained value = %d", value);
-        {
-          std::array<unsigned char, 4> msg(
-              {static_cast<unsigned char>(((value >> 0) & 0xFF)),
-               static_cast<unsigned char>(((value >> 8) & 0xFF)),
-               static_cast<unsigned char>(((value >> 16) & 0xFF)),
-               static_cast<unsigned char>(((value >> 24) & 0xFF))});
-          net.send(msg);
-          __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                              "mt_consumer sent value = %d", value);
-        }
+        net.send(value);
       }
     }
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
                         "mt_consumer finished");
   }
 }
-void mt_produce(mt_buffer_t &buffer, int value) {
+template <typename T> void mt_produce(mt_buffer_t<T> &buffer, const T &value) {
   buffer.add(value);
   __android_log_print(ANDROID_LOG_INFO, "native-activity", "produce %d", value);
 }
 void android_main(android_app *app) {
   app_dummy();
   {
-    mt_buffer_t mt_buffer;
+    mt_buffer_t<std::array<char, 56>> mt_buffer;
     std::thread consumer1(mt_consumer, std::ref(mt_buffer));
     {
       userdata_t data({0});
@@ -700,11 +689,12 @@ void android_main(android_app *app) {
                     // timestamp is in nanoseconds;
                     {
                       std::array<char, 56> s;
-                      snprintf(s.data(), 56,
+                      snprintf(s.data(), 1024,
                                "acc %12lld %+12.5f %+12.5f %+12.5f",
                                static_cast<long long>(event.timestamp),
                                event.acceleration.x, event.acceleration.y,
                                event.acceleration.z);
+                      mt_produce(std::ref(mt_buffer), s);
                       __android_log_print(ANDROID_LOG_INFO, "native-activity",
                                           "%s", s.data());
                     }
@@ -714,10 +704,11 @@ void android_main(android_app *app) {
                     // timestamp is in nanoseconds;
                     {
                       std::array<char, 56> s;
-                      snprintf(s.data(), 56,
+                      snprintf(s.data(), 1024,
                                "gyr %12lld %+12.5f %+12.5f %+12.5f",
                                static_cast<long long>(event.timestamp),
                                event.data[0], event.data[1], event.data[2]);
+                      mt_produce(std::ref(mt_buffer), s);
                       __android_log_print(ANDROID_LOG_INFO, "native-activity",
                                           "%s", s.data());
                     }
@@ -728,9 +719,10 @@ void android_main(android_app *app) {
                     {
                       std::array<char, 56> s;
                       snprintf(
-                          s.data(), 56, "mag %12lld %+12.5f %+12.5f %+12.5f",
+                          s.data(), 1024, "mag %12lld %+12.5f %+12.5f %+12.5f",
                           static_cast<long long>(event.timestamp),
                           event.magnetic.x, event.magnetic.y, event.magnetic.z);
+                      mt_produce(std::ref(mt_buffer), s);
                       __android_log_print(ANDROID_LOG_INFO, "native-activity",
                                           "%s", s.data());
                     }
