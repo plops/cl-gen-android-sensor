@@ -3,7 +3,7 @@
 #include <android/log.h>
 #include <android/sensor.h>
 #include <array>
-#include <sstream.h>
+#include <stdio.h>
 #include <sys/time.h>
 enum Constants { M_MAG_N = 1024 };
 
@@ -699,39 +699,40 @@ void android_main(android_app *app) {
                   case ASENSOR_TYPE_ACCELEROMETER: {
                     // timestamp is in nanoseconds;
                     {
-                      std::stringstream s;
-                      (s << "acc" << std::setw(12) << event.timestamp << " "
-                         << std::setw(12) << event.acceleration.x << " "
-                         << std::setw(12) << event.acceleration.y << " "
-                         << std::setw(12) << event.acceleration.z);
+                      std::array<char, 56> s;
+                      snprintf(s.data(), 56,
+                               "acc %12lld %+12.5f %+12.5f %+12.5f",
+                               static_cast<long long>(event.timestamp),
+                               event.acceleration.x, event.acceleration.y,
+                               event.acceleration.z);
                       __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          s.c_str());
+                                          "%s", s.data());
                     }
                     break;
                   }
                   case ASENSOR_TYPE_GYROSCOPE: {
                     // timestamp is in nanoseconds;
                     {
-                      std::stringstream s;
-                      (s << "gyr" << std::setw(12) << event.timestamp << " "
-                         << std::setw(12) << event.data[0] << " "
-                         << std::setw(12) << event.data[1] << " "
-                         << std::setw(12) << event.data[2]);
+                      std::array<char, 56> s;
+                      snprintf(s.data(), 56,
+                               "gyr %12lld %+12.5f %+12.5f %+12.5f",
+                               static_cast<long long>(event.timestamp),
+                               event.data[0], event.data[1], event.data[2]);
                       __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          s.c_str());
+                                          "%s", s.data());
                     }
                     break;
                   }
                   case ASENSOR_TYPE_MAGNETIC_FIELD: {
                     // timestamp is in nanoseconds;
                     {
-                      std::stringstream s;
-                      (s << "mag" << std::setw(12) << event.timestamp << " "
-                         << std::setw(12) << event.magnetic.x << " "
-                         << std::setw(12) << event.magnetic.y << " "
-                         << std::setw(12) << event.magnetic.z);
+                      std::array<char, 56> s;
+                      snprintf(
+                          s.data(), 56, "mag %12lld %+12.5f %+12.5f %+12.5f",
+                          static_cast<long long>(event.timestamp),
+                          event.magnetic.x, event.magnetic.y, event.magnetic.z);
                       __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          s.c_str());
+                                          "%s", s.data());
                     }
                     break;
                   }

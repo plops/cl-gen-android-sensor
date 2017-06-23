@@ -100,7 +100,7 @@ is replaced with replacement."
 		#+fft (include <cmath>)
 		(include <algorithm>)
 		(include <array>)
-		(include <sstream.h>)
+		(include <stdio.h>)
 		#+fft (include <complex>)
 		(include <sys/time.h>) ;; gettimeofday
 					;(include <android/trace.h>) ;; >= api 23
@@ -560,7 +560,7 @@ is replaced with replacement."
 						       collect
 							 `(,(string-upcase (format nil "ASENSOR_TYPE_~a" e))
 							    (raw "// timestamp is in nanoseconds")
-							    (let ((s :type "std::stringstream"))
+							    #+nil (let ((s :type "std::stringstream"))
 							      (<< s
 								  (string ,(subseq (format nil "~a " e) 0 3))
 								  (funcall "std::setw" 12) event.timestamp (string " ")
@@ -568,6 +568,20 @@ is replaced with replacement."
 								  (funcall "std::setw" 12) ,g (string " ")
 								  (funcall "std::setw" 12) ,h)
 							      (macroexpand (alog (funcall s.c_str))))
+
+							    ,(let ((n (+ 4 12 1 12 1 12 1 12  1)))
+							     `(let (
+								   (s :type ,(format nil "std::array<char,~a>" n)))
+							       (funcall snprintf (funcall s.data) ,n (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f"
+												       (subseq (format nil "~a" e) 0 3)))
+									(funcall "static_cast<long long>" event.timestamp) ,f ,g ,h)
+							       #+nil (<< s
+									 (string ,(subseq (format nil "~a " e) 0 3))
+									 (funcall "std::setw" 12) event.timestamp (string " ")
+									 (funcall "std::setw" 12) ,f (string " ")
+									 (funcall "std::setw" 12) ,g (string " ")
+									 (funcall "std::setw" 12) ,h)
+							       (macroexpand (alog (string "%s") (funcall s.data)))))
 							    #+nil
 							    (macroexpand (alog 
 									       (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f" (subseq (format nil "~a" e) 0 3)))
