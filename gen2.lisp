@@ -593,40 +593,41 @@ is replaced with replacement."
 								(string "accel %f")
 					;time
 								event.acceleration.x))
-						(let ((mag :ctor (aref event.data 2) #+nil (funcall "std::sqrt" (+ (* event.acceleration.x  event.acceleration.x )
-														   (* event.acceleration.y  event.acceleration.y )
-														   (* event.acceleration.z  event.acceleration.z )))))
-						  (setf (aref m_mag m_mag_idx) mag
+						(if (== event.type ASENSOR_TYPE_GYROSCOPE)
+						    (let ((mag :ctor (aref event.data 2) #+nil (funcall "std::sqrt" (+ (* event.acceleration.x  event.acceleration.x )
+															  (* event.acceleration.y  event.acceleration.y )
+															  (* event.acceleration.z  event.acceleration.z )))))
+							 (setf (aref m_mag m_mag_idx) mag
 					;(aref m_mag (% (+ 1 m_mag_idx) M_MAG_N)) 0.0
-							m_mag_idx (% (+ m_mag_idx 1)
-								     M_MAG_N))
-						  #+nil (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 1000 mag)))
-						  #+nil (macroexpand (alog (string "mag: %f") mag))
-						  (if (== 0 (% m_mag_idx 8))
-						      (statements
-						       (dotimes (i M_MAG_N)
-							 (setf (aref m_mag2 i) (aref m_mag i)))
-						       (setf app->redrawNeeded 1)
-						       #+nil(macroexpand (alog (string "a: %f %f %f") (aref m_mag 0) (aref m_mag 1) (aref m_mag 2)))
-						       
-						       )
-						      )
-						  
-						  #+fft (if (== 0 (% m_mag_idx 16))
-							    (statements
+							       m_mag_idx (% (+ m_mag_idx 1)
+									    M_MAG_N))
+							 #+nil (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 1000 mag)))
+							 #+nil (macroexpand (alog (string "mag: %f") mag))
+							 (if (== 0 (% m_mag_idx 8))
 							     (statements
+							      (dotimes (i M_MAG_N)
+								(setf (aref m_mag2 i) (aref m_mag i)))
+							      (setf app->redrawNeeded 1)
+							      #+nil(macroexpand (alog (string "a: %f %f %f") (aref m_mag 0) (aref m_mag 1) (aref m_mag 2)))
+						       
+							      )
+							     )
+						  
+							 #+fft (if (== 0 (% m_mag_idx 16))
+								   (statements
+								    (statements
 							      
-							      (dotimes (i M_MAG_N)
-								(setf (aref m_fft_in i) (aref m_mag i)))
-							      (macroexpand (benchmark (funcall fft m_fft_in m_fft_out)))
-							      (dotimes (i M_MAG_N)
-								(setf (aref m_fft_out_mag i) #+nil (funcall "std::abs" (aref m_fft_out i)) 
-								      (funcall "std::log" (+ 1 (funcall "std::abs" (aref m_fft_out i)) )
-									       ))))
+								     (dotimes (i M_MAG_N)
+								       (setf (aref m_fft_in i) (aref m_mag i)))
+								     (macroexpand (benchmark (funcall fft m_fft_in m_fft_out)))
+								     (dotimes (i M_MAG_N)
+								       (setf (aref m_fft_out_mag i) #+nil (funcall "std::abs" (aref m_fft_out i)) 
+									     (funcall "std::log" (+ 1 (funcall "std::abs" (aref m_fft_out i)) )
+										      ))))
 							     
-							     #+nil(macroexpand (alog (string "fft finished")))
-							     (setf app->redrawNeeded 1)
-							     ))))))
+								    #+nil(macroexpand (alog (string "fft finished")))
+								    (setf app->redrawNeeded 1)
+								    )))))))
 					 (t
 					  (statements
 					   (if (!= nullptr source)

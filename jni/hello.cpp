@@ -737,15 +737,17 @@ void android_main(android_app *app) {
                     break;
                   }
                   }
-                  {
-                    auto mag(event.data[2]);
-                    m_mag[m_mag_idx] = mag;
-                    m_mag_idx = ((m_mag_idx + 1) % M_MAG_N);
-                    if ((0 == (m_mag_idx % 8))) {
-                      for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
-                        m_mag2[i] = m_mag[i];
+                  if ((event.type == ASENSOR_TYPE_GYROSCOPE)) {
+                    {
+                      auto mag(event.data[2]);
+                      m_mag[m_mag_idx] = mag;
+                      m_mag_idx = ((m_mag_idx + 1) % M_MAG_N);
+                      if ((0 == (m_mag_idx % 8))) {
+                        for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
+                          m_mag2[i] = m_mag[i];
+                        }
+                        app->redrawNeeded = 1;
                       }
-                      app->redrawNeeded = 1;
                     }
                   }
                 }
