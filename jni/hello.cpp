@@ -3,6 +3,7 @@
 #include <android/log.h>
 #include <android/sensor.h>
 #include <array>
+#include <sstream.h>
 #include <sys/time.h>
 enum Constants { M_MAG_N = 1024 };
 
@@ -446,35 +447,38 @@ void handle_activity_lifecycle_events(struct android_app *app, int32_t cmd) {
       if ((nullptr != data->sensor_accelerometer)) {
         ASensorEventQueue_enableSensor(data->sensor_event_queue,
                                        data->sensor_accelerometer);
-        __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                            "accelerometer_min_delay = %d",
-                            ASensor_getMinDelay(data->sensor_accelerometer));
-        // setting rate only after sensor is enabled;
-        ASensorEventQueue_setEventRate(data->sensor_event_queue,
-                                       data->sensor_accelerometer,
-                                       ((1000L / 5000) * 1000));
+        {
+          auto min_delay(ASensor_getMinDelay(data->sensor_accelerometer));
+          __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                              "accelerometer_min_delay = %d", min_delay);
+          // setting rate only after sensor is enabled;
+          ASensorEventQueue_setEventRate(data->sensor_event_queue,
+                                         data->sensor_accelerometer, min_delay);
+        }
       }
       if ((nullptr != data->sensor_magnetic_field)) {
         ASensorEventQueue_enableSensor(data->sensor_event_queue,
                                        data->sensor_magnetic_field);
-        __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                            "magnetic_field_min_delay = %d",
-                            ASensor_getMinDelay(data->sensor_magnetic_field));
-        // setting rate only after sensor is enabled;
-        ASensorEventQueue_setEventRate(data->sensor_event_queue,
-                                       data->sensor_magnetic_field,
-                                       ((1000L / 5000) * 1000));
+        {
+          auto min_delay(ASensor_getMinDelay(data->sensor_magnetic_field));
+          __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                              "magnetic_field_min_delay = %d", min_delay);
+          // setting rate only after sensor is enabled;
+          ASensorEventQueue_setEventRate(
+              data->sensor_event_queue, data->sensor_magnetic_field, min_delay);
+        }
       }
       if ((nullptr != data->sensor_gyroscope)) {
         ASensorEventQueue_enableSensor(data->sensor_event_queue,
                                        data->sensor_gyroscope);
-        __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                            "gyroscope_min_delay = %d",
-                            ASensor_getMinDelay(data->sensor_gyroscope));
-        // setting rate only after sensor is enabled;
-        ASensorEventQueue_setEventRate(data->sensor_event_queue,
-                                       data->sensor_gyroscope,
-                                       ((1000L / 5000) * 1000));
+        {
+          auto min_delay(ASensor_getMinDelay(data->sensor_gyroscope));
+          __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                              "gyroscope_min_delay = %d", min_delay);
+          // setting rate only after sensor is enabled;
+          ASensorEventQueue_setEventRate(data->sensor_event_queue,
+                                         data->sensor_gyroscope, min_delay);
+        }
       }
     }
     break;
@@ -693,24 +697,42 @@ void android_main(android_app *app) {
                                                         &event, 1))) {
                   switch (event.type) {
                   case ASENSOR_TYPE_ACCELEROMETER: {
-                    __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                        "accelerometer %lld %+6.5f",
-                                        static_cast<long long>(event.timestamp),
-                                        event.acceleration.x);
+                    // timestamp is in nanoseconds;
+                    {
+                      std::stringstream s;
+                      (s << "acc" << std::setw(12) << event.timestamp << " "
+                         << std::setw(12) << event.acceleration.x << " "
+                         << std::setw(12) << event.acceleration.y << " "
+                         << std::setw(12) << event.acceleration.z);
+                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                          s.c_str());
+                    }
                     break;
                   }
                   case ASENSOR_TYPE_GYROSCOPE: {
-                    __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                        "gyroscope %lld %+6.5f",
-                                        static_cast<long long>(event.timestamp),
-                                        event.data[0]);
+                    // timestamp is in nanoseconds;
+                    {
+                      std::stringstream s;
+                      (s << "gyr" << std::setw(12) << event.timestamp << " "
+                         << std::setw(12) << event.data[0] << " "
+                         << std::setw(12) << event.data[1] << " "
+                         << std::setw(12) << event.data[2]);
+                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                          s.c_str());
+                    }
                     break;
                   }
                   case ASENSOR_TYPE_MAGNETIC_FIELD: {
-                    __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                        "magnetic_field %lld %+6.5f",
-                                        static_cast<long long>(event.timestamp),
-                                        event.magnetic.x);
+                    // timestamp is in nanoseconds;
+                    {
+                      std::stringstream s;
+                      (s << "mag" << std::setw(12) << event.timestamp << " "
+                         << std::setw(12) << event.magnetic.x << " "
+                         << std::setw(12) << event.magnetic.y << " "
+                         << std::setw(12) << event.magnetic.z);
+                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                          s.c_str());
+                    }
                     break;
                   }
                   }

@@ -100,6 +100,7 @@ is replaced with replacement."
 		#+fft (include <cmath>)
 		(include <algorithm>)
 		(include <array>)
+		(include <sstream.h>)
 		#+fft (include <complex>)
 		(include <sys/time.h>) ;; gettimeofday
 					;(include <android/trace.h>) ;; >= api 23
@@ -305,14 +306,15 @@ is replaced with replacement."
 					     (statements
 					      
 					      (funcall ASensorEventQueue_enableSensor data->sensor_event_queue ,sensor)
-					      (funcall __android_log_print ANDROID_LOG_INFO
-						       (string "native-activity")
-						       (string ,(format nil "~a_min_delay = %d" e))
-						       (funcall ASensor_getMinDelay ,sensor))
-					      (raw "// setting rate only after sensor is enabled")
-					      (funcall ASensorEventQueue_setEventRate data->sensor_event_queue ,sensor
-						       (* (/ (raw "1000L") 5000 ; 60
-							     )					       1000))))))))
+					      (let ((min_delay :ctor (funcall ASensor_getMinDelay ,sensor)))
+					       (funcall __android_log_print ANDROID_LOG_INFO
+							(string "native-activity")
+							(string ,(format nil "~a_min_delay = %d" e))
+							min_delay)
+					       (raw "// setting rate only after sensor is enabled")
+					       (funcall ASensorEventQueue_setEventRate data->sensor_event_queue ,sensor
+							min_delay #+nil (* (/ (raw "1000L") 5000 ; 60
+									      )					       1000)))))))))
 			    (APP_CMD_LOST_FOCUS
 			     (let ((data :ctor (funcall reinterpret_cast<userdata_t*> app->userData)))
 			       ,@(loop for e in sensors collect
@@ -552,14 +554,24 @@ is replaced with replacement."
 					    (let ((event :type ASensorEvent))
 					      (while (< 0 (funcall ASensorEventQueue_getEvents data.sensor_event_queue &event 1))
 						(case event.type
-						  ,@(loop for (e f) in '((accelerometer event.acceleration.x)
-								       (gyroscope (aref event.data 0))
-									 (magnetic_field event.magnetic.x))
+						  ,@(loop for (e f g h) in '((accelerometer event.acceleration.x event.acceleration.y event.acceleration.z)
+								       (gyroscope (aref event.data 0) (aref event.data 1) (aref event.data 2))
+									 (magnetic_field event.magnetic.x event.magnetic.y event.magnetic.z))
 						       collect
 							 `(,(string-upcase (format nil "ASENSOR_TYPE_~a" e))
-							    (macroexpand (alog #+nil (with-compilation-unit (string "acc: ") PRId64 (string " %+6.5f"))
-									       (string ,(format nil "~a %lld %+6.5f" e))
-									       (funcall "static_cast<long long>" event.timestamp) ,f))))
+							    (raw "// timestamp is in nanoseconds")
+							    (let ((s :type "std::stringstream"))
+							      (<< s
+								  (string ,(subseq (format nil "~a " e) 0 3))
+								  (funcall "std::setw" 12) event.timestamp (string " ")
+								  (funcall "std::setw" 12) ,f (string " ")
+								  (funcall "std::setw" 12) ,g (string " ")
+								  (funcall "std::setw" 12) ,h)
+							      (macroexpand (alog (funcall s.c_str))))
+							    #+nil
+							    (macroexpand (alog 
+									       (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f" (subseq (format nil "~a" e) 0 3)))
+									       (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h))))
 						  )
 						#+nil (statements ;let ((time :ctor (funcall get_time)))
 						       (funcall __android_log_print ANDROID_LOG_INFO
