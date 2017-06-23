@@ -34,7 +34,8 @@ is replaced with replacement."
 
 (defparameter *ndk-facts*
     `((10 "Android Studio 3 canary 3 does not support advanced profiling of native apps.")
-      ))
+      (20 "The system doesn't automatically disable sensors when the screen is off.")
+      (30 "What is direct report mode")))
 ;; profiling https://developer.oculus.com/documentation/mobilesdk/latest/concepts/mobile-ndk-profiler/
 ;; gyro docs https://crypto.stanford.edu/gyrophone/files/gyromic.pdf
 ;; /home/martin/and/android-ndk-r14b/toolchains/arm-linux-androideabi-4.9/prebuilt/linux-x86_64/bin/arm-linux-androideabi-nm apk/lib/armeabi-v7a/libhello.so
@@ -79,10 +80,14 @@ is replaced with replacement."
 
 
 (let* ((n 1024)
+       (sensors '(accelerometer
+		  magnetic_field
+		  gyroscope))
        (code `(with-compilation-unit
 		  
 		  (include "android_native_app_glue.h")
 		(include <android/log.h>)
+		;(include <hardware/sensors.h>)
 		;; (include <jni.h>)
 		;; (include <android/window.h>)
 		;; (include <android/rect.h>)
@@ -111,6 +116,7 @@ is replaced with replacement."
 			 (m_mag_idx :type int :init 0)
 			 ((aref m_mag2 M_MAG_N) :type float :init (list ,@ (loop for i below n collect 0.0)))
 			 )))
+		#+nil
 		(function (current_time () "static inline uint64_t")
 			  
 			  (let ((tv :type "struct timeval"))
@@ -120,9 +126,9 @@ is replaced with replacement."
 
 		(struct userdata_t ()
 			(decl ((move_x :type int32_t)
-			       (sensor_event_queue :type ASensorEventQueue*)
-			       (sensor_accelerometer :type "const ASensor*")
-			       )))
+			       ,@(loop for e in sensors collect
+				      `(,(format nil "sensor_~a" e) :type "const ASensor*"))
+			       (sensor_event_queue :type ASensorEventQueue*))))
 		
 		(function (handle_input_events ((app :type android_app*)
 						(event :type AInputEvent*)) int32_t)
@@ -494,20 +500,27 @@ is replaced with replacement."
 			    
 			    
 			    (let ((data :type userdata_t :ctor (list 0))
-				  (sensor_manager :ctor (funcall ASensorManager_getInstanceForPackage nullptr))
+				  (sensor_manager :ctor #+nil
+						  (funcall ASensorManager_getInstanceForPackage nullptr)
+						  (funcall ASensorManager_getInstance))
 				  (looper :ctor (funcall ALooper_prepare ALOOPER_PREPARE_ALLOW_NON_CALLBACKS)))
 			      (macroexpand (aassert (!= nullptr looper)))
 			      (macroexpand (aassert (!= nullptr sensor_manager)))
-			      (setf data.sensor_accelerometer (funcall ASensorManager_getDefaultSensor sensor_manager ASENSOR_TYPE_GYROSCOPE))
-			      
-			      (macroexpand (aassert (!= nullptr data.sensor_accelerometer)))
-					;ASENSOR_TYPE_ACCELEROMETER
-			      (setf data.sensor_accelerometer (funcall ASensorManager_getDefaultSensor sensor_manager ASENSOR_TYPE_GYROSCOPE))
-			      
-			      (macroexpand (aassert (!= nullptr data.sensor_accelerometer)))
-			      (setf data.sensor_event_queue (funcall ASensorManager_createEventQueue sensor_manager looper LOOPER_ID_USER nullptr nullptr))
-			      
+			      ,@ (loop for e in sensors appending
+				      (let ((var (format nil "data.sensor_~a" e)))
+					`((setf ,var (funcall ASensorManager_getDefaultSensor sensor_manager ,(string-upcase (format nil "ASENSOR_TYPE_~A" e))))
+					  (if (!= nullptr ,var)
+					      (statements
+					       (funcall __android_log_print ANDROID_LOG_INFO
+							(string "native-activity")
+							(string ,(format nil "error in getDefaultSensor ~a" var))
+							)))
+					  #+nil (macroexpand (aassert (!= nullptr ,var))))))
+			      (setf  data.sensor_event_queue (funcall ASensorManager_createEventQueue sensor_manager looper LOOPER_ID_USER nullptr nullptr))
 			      (macroexpand (aassert (!= nullptr data.sensor_event_queue)))
+			      
+			      
+			      
 			      (setf app->userData &data
 				    app->onAppCmd handle_activity_lifecycle_events
 				    app->onInputEvent handle_input_events)
@@ -523,6 +536,9 @@ is replaced with replacement."
 					 (LOOPER_ID_USER
 					    (let ((event :type ASensorEvent))
 					      (while (< 0 (funcall ASensorEventQueue_getEvents data.sensor_event_queue &event 1))
+						(case event.type
+						    (ASENSOR_TYPE_ACCELEROMETER
+						     (macroexpand (alog (string "acc: %lld %+6.5f") event.timestamp event.acceleration.x))))
 						#+nil (statements ;let ((time :ctor (funcall get_time)))
 						       (funcall __android_log_print ANDROID_LOG_INFO
 								(string "native-activity")
@@ -536,7 +552,7 @@ is replaced with replacement."
 					;(aref m_mag (% (+ 1 m_mag_idx) M_MAG_N)) 0.0
 							m_mag_idx (% (+ m_mag_idx 1)
 								     M_MAG_N))
-						  (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 1000 mag)))
+						  #+nil (funcall mt_produce (funcall "std::ref" mt_buffer) (funcall static_cast<int> (* 1000 mag)))
 						  #+nil (macroexpand (alog (string "mag: %f") mag))
 						  (if (== 0 (% m_mag_idx 8))
 						      (statements

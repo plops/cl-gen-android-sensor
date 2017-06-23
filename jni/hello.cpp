@@ -305,17 +305,12 @@ float m_mag2[M_MAG_N] = {
     (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f), (0.0e+0f),
     (0.0e+0f), (0.0e+0f)};
 
-static inline uint64_t current_time() {
-  {
-    struct timeval tv;
-    gettimeofday(&tv, nullptr);
-    return ((tv.tv_sec * 1000000) + tv.tv_usec);
-  }
-}
 struct userdata_t {
   int32_t move_x;
-  ASensorEventQueue *sensor_event_queue;
   const ASensor *sensor_accelerometer;
+  const ASensor *sensor_magnetic_field;
+  const ASensor *sensor_gyroscope;
+  ASensorEventQueue *sensor_event_queue;
 };
 
 int32_t handle_input_events(android_app *app, AInputEvent *event) {
@@ -608,7 +603,7 @@ void android_main(android_app *app) {
     std::thread consumer1(mt_consumer, std::ref(mt_buffer));
     {
       userdata_t data({0});
-      auto sensor_manager(ASensorManager_getInstanceForPackage(nullptr));
+      auto sensor_manager(ASensorManager_getInstance());
       auto looper(ALooper_prepare(ALOOPER_PREPARE_ALLOW_NON_CALLBACKS));
       if ((!((nullptr != looper)))) {
         __android_log_print(ANDROID_LOG_INFO, "native-activity",
@@ -619,18 +614,24 @@ void android_main(android_app *app) {
                             "assertion (!= nullptr sensor_manager) failed");
       }
       data.sensor_accelerometer = ASensorManager_getDefaultSensor(
-          sensor_manager, ASENSOR_TYPE_GYROSCOPE);
-      if ((!((nullptr != data.sensor_accelerometer)))) {
+          sensor_manager, ASENSOR_TYPE_ACCELEROMETER);
+      if ((nullptr != data.sensor_accelerometer)) {
         __android_log_print(
             ANDROID_LOG_INFO, "native-activity",
-            "assertion (!= nullptr data.sensor_accelerometer) failed");
+            "error in getDefaultSensor data.sensor_accelerometer");
       }
-      data.sensor_accelerometer = ASensorManager_getDefaultSensor(
-          sensor_manager, ASENSOR_TYPE_GYROSCOPE);
-      if ((!((nullptr != data.sensor_accelerometer)))) {
+      data.sensor_magnetic_field = ASensorManager_getDefaultSensor(
+          sensor_manager, ASENSOR_TYPE_MAGNETIC_FIELD);
+      if ((nullptr != data.sensor_magnetic_field)) {
         __android_log_print(
             ANDROID_LOG_INFO, "native-activity",
-            "assertion (!= nullptr data.sensor_accelerometer) failed");
+            "error in getDefaultSensor data.sensor_magnetic_field");
+      }
+      data.sensor_gyroscope = ASensorManager_getDefaultSensor(
+          sensor_manager, ASENSOR_TYPE_GYROSCOPE);
+      if ((nullptr != data.sensor_gyroscope)) {
+        __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                            "error in getDefaultSensor data.sensor_gyroscope");
       }
       data.sensor_event_queue = ASensorManager_createEventQueue(
           sensor_manager, looper, LOOPER_ID_USER, nullptr, nullptr);
@@ -656,12 +657,18 @@ void android_main(android_app *app) {
                 ASensorEvent event;
                 while ((0 < ASensorEventQueue_getEvents(data.sensor_event_queue,
                                                         &event, 1))) {
+                  switch (event.type) {
+                  case ASENSOR_TYPE_ACCELEROMETER: {
+                    __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                        "acc: %lld %+6.5f", event.timestamp,
+                                        event.acceleration.x);
+                    break;
+                  }
+                  }
                   {
                     auto mag(event.data[2]);
                     m_mag[m_mag_idx] = mag;
                     m_mag_idx = ((m_mag_idx + 1) % M_MAG_N);
-                    mt_produce(std::ref(mt_buffer),
-                               static_cast<int>((1000 * mag)));
                     if ((0 == (m_mag_idx % 8))) {
                       for (unsigned int i = 0; (i < M_MAG_N); i += 1) {
                         m_mag2[i] = m_mag[i];
