@@ -566,11 +566,11 @@ class mt_buffer_t {
 private:
   std::mutex m_mutex;
   std::condition_variable m_cond;
-  std::deque<std::array<char, 56>> m_buffer;
+  std::deque<std::array<char, 59>> m_buffer;
   const unsigned int m_size = 10;
 
 public:
-  void add(const std::array<char, 56> &num) {
+  void add(const std::array<char, 59> &num) {
     while (true) {
       {
         std::unique_lock<std::mutex> locker(m_mutex);
@@ -582,7 +582,7 @@ public:
       }
     }
   }
-  std::array<char, 56> remove() {
+  std::array<char, 59> remove() {
     while (true) {
       {
         std::unique_lock<std::mutex> locker(m_mutex);
@@ -608,8 +608,6 @@ void mt_consumer(mt_buffer_t &buffer) {
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
                         "mt_consumer accepted connection");
     while (true) {
-      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                          "mt_consumer waits for value");
       {
         auto value(buffer.remove());
         net.send(value);
@@ -619,7 +617,7 @@ void mt_consumer(mt_buffer_t &buffer) {
                         "mt_consumer finished");
   }
 }
-void mt_produce(mt_buffer_t &buffer, const std::array<char, 56> &value) {
+void mt_produce(mt_buffer_t &buffer, const std::array<char, 59> &value) {
   buffer.add(value);
 }
 void android_main(android_app *app) {
@@ -687,43 +685,57 @@ void android_main(android_app *app) {
                   case ASENSOR_TYPE_ACCELEROMETER: {
                     // timestamp is in nanoseconds;
                     {
-                      std::array<char, 56> s;
-                      snprintf(s.data(), 1024,
-                               "acc %12lld %+12.5f %+12.5f %+12.5f",
+                      static std::array<char, 59> s;
+                      static std::array<char, 1024> sb;
+                      sprintf(sb.data(), "acc %12lld %+12.5f %+12.5f %+12.5f\n",
+                              static_cast<long long>(event.timestamp),
+                              event.acceleration.x, event.acceleration.y,
+                              event.acceleration.z);
+                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                          "len %d", strlen(sb.data()));
+                      snprintf(s.data(), 59,
+                               "acc %12lld %+12.5f %+12.5f %+12.5f\n",
                                static_cast<long long>(event.timestamp),
                                event.acceleration.x, event.acceleration.y,
                                event.acceleration.z);
                       mt_produce(std::ref(mt_buffer), s);
-                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          "%s", s.data());
                     }
                     break;
                   }
                   case ASENSOR_TYPE_GYROSCOPE: {
                     // timestamp is in nanoseconds;
                     {
-                      std::array<char, 56> s;
-                      snprintf(s.data(), 1024,
-                               "gyr %12lld %+12.5f %+12.5f %+12.5f",
+                      static std::array<char, 59> s;
+                      static std::array<char, 1024> sb;
+                      sprintf(sb.data(), "gyr %12lld %+12.5f %+12.5f %+12.5f\n",
+                              static_cast<long long>(event.timestamp),
+                              event.data[0], event.data[1], event.data[2]);
+                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                          "len %d", strlen(sb.data()));
+                      snprintf(s.data(), 59,
+                               "gyr %12lld %+12.5f %+12.5f %+12.5f\n",
                                static_cast<long long>(event.timestamp),
                                event.data[0], event.data[1], event.data[2]);
                       mt_produce(std::ref(mt_buffer), s);
-                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          "%s", s.data());
                     }
                     break;
                   }
                   case ASENSOR_TYPE_MAGNETIC_FIELD: {
                     // timestamp is in nanoseconds;
                     {
-                      std::array<char, 56> s;
+                      static std::array<char, 59> s;
+                      static std::array<char, 1024> sb;
+                      sprintf(sb.data(), "mag %12lld %+12.5f %+12.5f %+12.5f\n",
+                              static_cast<long long>(event.timestamp),
+                              event.magnetic.x, event.magnetic.y,
+                              event.magnetic.z);
+                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                          "len %d", strlen(sb.data()));
                       snprintf(
-                          s.data(), 1024, "mag %12lld %+12.5f %+12.5f %+12.5f",
+                          s.data(), 59, "mag %12lld %+12.5f %+12.5f %+12.5f\n",
                           static_cast<long long>(event.timestamp),
                           event.magnetic.x, event.magnetic.y, event.magnetic.z);
                       mt_produce(std::ref(mt_buffer), s);
-                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          "%s", s.data());
                     }
                     break;
                   }

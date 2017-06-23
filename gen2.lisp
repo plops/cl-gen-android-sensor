@@ -435,10 +435,14 @@ is replaced with replacement."
 		
 
 
-		
-		,(let* ((msg-n (+ 4 12 1 12 1 12 1 12  1))
+		;; compute the message length by emulating the snprintf format string with common lisp format function
+		;; remember to add 1 char for the trailing zero
+		,(let* ((msg-proto (format nil "~3a ~12a ~12a ~12a ~12a~%" #+nil "~3a %12lld %+12.5f %+12.5f %+12.5f\\n"
+					   'typ 'time 'x 'y 'z))
+			(msg-n (+ 3 (length msg-proto)) ; (+ 4 12 1 12 1 12 1 12  1)
+			 )
 			(msg-type (format nil "std::array<char,~a>" msg-n)))
-
+		   (defparameter *msg-proto* msg-proto)
 		   `(with-compilation-unit
 			(with-compilation-unit
 		    ;; https://codereview.stackexchange.com/questions/84109/a-multi-threaded-producer-consumer-with-c11
@@ -485,7 +489,7 @@ is replaced with replacement."
 			      (funcall net.accept)
 			      (macroexpand (alog (string "mt_consumer accepted connection")))
 			      (while true
-				(macroexpand (alog (string "mt_consumer waits for value")))
+				#+nil (macroexpand (alog (string "mt_consumer waits for value")))
 				(let ((value :ctor (funcall buffer.remove)))
 				  (statements
 				    (funcall net.send value))))
@@ -565,13 +569,20 @@ is replaced with replacement."
 									 (macroexpand (alog (funcall s.c_str))))
 
 								 (let (
-								       (s :type ,msg-type))
-								   (funcall snprintf (funcall s.data) ,n (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f"
+								       (s :type ,(format nil "static ~a" msg-type))
+								       (sb :type "static std::array<char,1024>"))
+
+								   (funcall sprintf (funcall sb.data)
+									    (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f\\n"
+											     (subseq (format nil "~a" e) 0 3)))
+									    (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h)
+								   (macroexpand (alog (string "len %d") (funcall strlen (funcall sb.data))))
+								   (funcall snprintf (funcall s.data) ,msg-n (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f\\n"
 															  (subseq (format nil "~a" e) 0 3)))
 									    (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h)
 								   (funcall mt_produce (funcall "std::ref" mt_buffer) s)
 								
-								   (macroexpand (alog (string "%s") (funcall s.data))))
+								   #+nil (macroexpand (alog (string "%s") (funcall s.data))))
 								 #+nil
 								 (macroexpand (alog 
 									       (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f" (subseq (format nil "~a" e) 0 3)))
@@ -629,4 +640,5 @@ is replaced with replacement."
 					    (funcall drawSomething app)
 					    (setf app->redrawNeeded 0)))))))))))))
   (write-source "/home/martin/and/src/jni/hello" "cpp" code))
+
 
