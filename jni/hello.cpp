@@ -543,7 +543,7 @@ public:
     }
   }
   void close() { ::close(m_fd); }
-  template <std::size_t N> int send(std::array<unsigned char, N> data) {
+  template <std::size_t N> int send(std::array<char, N> data) {
     {
       auto bytes_sent(0);
       auto bytes_left(N);
@@ -562,15 +562,15 @@ public:
 #include <condition_variable>
 #include <deque>
 #include <thread>
-template <typename T> class mt_buffer_t {
+class mt_buffer_t {
 private:
   std::mutex m_mutex;
   std::condition_variable m_cond;
-  std::deque<T> m_buffer;
+  std::deque<std::array<char, 56>> m_buffer;
   const unsigned int m_size = 10;
 
 public:
-  void add(T num) {
+  void add(const std::array<char, 56> &num) {
     while (true) {
       {
         std::unique_lock<std::mutex> locker(m_mutex);
@@ -582,7 +582,7 @@ public:
       }
     }
   }
-  T remove() {
+  std::array<char, 56> remove() {
     while (true) {
       {
         std::unique_lock<std::mutex> locker(m_mutex);
@@ -599,7 +599,7 @@ public:
   }
 };
 
-template <typename T> void mt_consumer(mt_buffer_t<T> &buffer) {
+void mt_consumer(mt_buffer_t &buffer) {
   {
     net_t net;
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
@@ -619,14 +619,13 @@ template <typename T> void mt_consumer(mt_buffer_t<T> &buffer) {
                         "mt_consumer finished");
   }
 }
-template <typename T> void mt_produce(mt_buffer_t<T> &buffer, const T &value) {
+void mt_produce(mt_buffer_t &buffer, const std::array<char, 56> &value) {
   buffer.add(value);
-  __android_log_print(ANDROID_LOG_INFO, "native-activity", "produce %d", value);
 }
 void android_main(android_app *app) {
   app_dummy();
   {
-    mt_buffer_t<std::array<char, 56>> mt_buffer;
+    mt_buffer_t mt_buffer;
     std::thread consumer1(mt_consumer, std::ref(mt_buffer));
     {
       userdata_t data({0});
