@@ -446,6 +446,10 @@ void handle_activity_lifecycle_events(struct android_app *app, int32_t cmd) {
       if ((nullptr != data->sensor_accelerometer)) {
         ASensorEventQueue_enableSensor(data->sensor_event_queue,
                                        data->sensor_accelerometer);
+        __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                            "accelerometer_min_delay = %d",
+                            ASensor_getMinDelay(data->sensor_accelerometer));
+        // setting rate only after sensor is enabled;
         ASensorEventQueue_setEventRate(data->sensor_event_queue,
                                        data->sensor_accelerometer,
                                        ((1000L / 5000) * 1000));
@@ -453,6 +457,10 @@ void handle_activity_lifecycle_events(struct android_app *app, int32_t cmd) {
       if ((nullptr != data->sensor_magnetic_field)) {
         ASensorEventQueue_enableSensor(data->sensor_event_queue,
                                        data->sensor_magnetic_field);
+        __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                            "magnetic_field_min_delay = %d",
+                            ASensor_getMinDelay(data->sensor_magnetic_field));
+        // setting rate only after sensor is enabled;
         ASensorEventQueue_setEventRate(data->sensor_event_queue,
                                        data->sensor_magnetic_field,
                                        ((1000L / 5000) * 1000));
@@ -460,6 +468,10 @@ void handle_activity_lifecycle_events(struct android_app *app, int32_t cmd) {
       if ((nullptr != data->sensor_gyroscope)) {
         ASensorEventQueue_enableSensor(data->sensor_event_queue,
                                        data->sensor_gyroscope);
+        __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                            "gyroscope_min_delay = %d",
+                            ASensor_getMinDelay(data->sensor_gyroscope));
+        // setting rate only after sensor is enabled;
         ASensorEventQueue_setEventRate(data->sensor_event_queue,
                                        data->sensor_gyroscope,
                                        ((1000L / 5000) * 1000));

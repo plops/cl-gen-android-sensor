@@ -303,7 +303,13 @@ is replaced with replacement."
 				       (let ((sensor (format nil "data->sensor_~a" e)))
 					`(if (!= nullptr ,sensor)
 					     (statements
+					      
 					      (funcall ASensorEventQueue_enableSensor data->sensor_event_queue ,sensor)
+					      (funcall __android_log_print ANDROID_LOG_INFO
+						       (string "native-activity")
+						       (string ,(format nil "~a_min_delay = %d" e))
+						       (funcall ASensor_getMinDelay ,sensor))
+					      (raw "// setting rate only after sensor is enabled")
 					      (funcall ASensorEventQueue_setEventRate data->sensor_event_queue ,sensor
 						       (* (/ (raw "1000L") 5000 ; 60
 							     )					       1000))))))))
