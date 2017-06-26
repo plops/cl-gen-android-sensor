@@ -552,7 +552,7 @@ public:
           auto bytes(::send(m_conn_fd, (&(data[bytes_sent])), bytes_left, 0));
           if ((bytes < 0)) {
             {
-              const char *err_msgs[15] = {
+              const char *err_msgs[16] = {
                   "The socket's  file  descriptor  is  marked  O_NONBLOCK  and "
                   " the requested operation would block.",
                   "A connection was forcibly closed by peer.",
@@ -579,7 +579,8 @@ public:
                   "destination  is down.",
                   "No route to the network is present.",
                   "Insufficient  resources  were available in the system to "
-                  "perform the operation."};
+                  "perform the operation.",
+                  "Unknown error."};
               auto err_msg_lut([&](ssize_t idx) -> int {
                 switch (idx) {
                 case EAGAIN: {
@@ -640,6 +641,10 @@ public:
                 }
                 case ENOBUFS: {
                   return 14;
+                  break;
+                }
+                default: {
+                  return 15;
                   break;
                 }
                 }

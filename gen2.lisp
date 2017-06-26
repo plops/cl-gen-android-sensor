@@ -430,7 +430,8 @@ is replaced with replacement."
 							(EIO    "An  I/O error occurred while reading from or writing to the file system.")
 							(ENETDOWN "The local network interface used to  reach  the  destination  is down.")
 							(ENETUNREACH "No route to the network is present.")
-							(ENOBUFS "Insufficient  resources  were available in the system to perform the operation."))))
+							(ENOBUFS "Insufficient  resources  were available in the system to perform the operation.")
+							(t "Unknown error."))))
 						 `(let (((aref err_msgs ,(length err-msgs)) :type "const char*"
 							 :init (list ,@(loop for (e f) in err-msgs
 									  collect `(string ,f))))
@@ -438,7 +439,8 @@ is replaced with replacement."
 							 :ctor (lambda (((idx :type ssize_t)) :captures ("&") :ret ->int)
 								 (case idx
 								   ,@(loop for (e f) in err-msgs and i from 0 appending
-									  `((,e (return ,i))))))))
+									  `((,e (return ,i))))
+								   ))))
 						    (macroexpand (alog (string "net::send msg{%d}=%s") errno (aref err_msgs (funcall err_msg_lut errno))))
 						    (return -1)))))
 					 (-= bytes_left bytes)
