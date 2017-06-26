@@ -517,7 +517,7 @@ is replaced with replacement."
 			      (macroexpand (alog (string "mt_consumer thread started")))
 			      (while accept_again
 				(funcall net.accept)
-				(setf send_lines true)
+				(setf send_lines true) 
 				(macroexpand (alog (string "mt_consumer accepted connection")))
 				(while send_lines
 				  #+nil (macroexpand (alog (string "mt_consumer waits for value")))
