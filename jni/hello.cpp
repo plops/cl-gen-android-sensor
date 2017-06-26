@@ -659,6 +659,7 @@ public:
   }
 };
 
+#include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <thread>
@@ -707,7 +708,24 @@ void mt_consumer(mt_buffer_t &buffer) {
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
                         "mt_consumer thread started");
     while (accept_again) {
-      net.accept();
+      // this accept is blocking;
+      // in order to update display when no one is connection initiate a stub
+      // thread;
+      __android_log_print(
+          ANDROID_LOG_INFO, "native-activity",
+          "no connections yet, starting stub thread to keep display updated.");
+      {
+        std::atomic<bool> consumer_stub_keep_running(true);
+        auto consumer_stub_fun([&]() -> void {
+          while (consumer_stub_keep_running) {
+            buffer.remove();
+          }
+        });
+        std::thread consumer_stub_thread(consumer_stub_fun);
+        net.accept();
+        consumer_stub_keep_running = false;
+        consumer_stub_thread.join();
+      }
       send_lines = true;
       __android_log_print(ANDROID_LOG_INFO, "native-activity",
                           "mt_consumer accepted connection");

@@ -474,7 +474,8 @@ is replaced with replacement."
 			(with-compilation-unit
 		    ;; https://codereview.stackexchange.com/questions/84109/a-multi-threaded-producer-consumer-with-c11
 		    ;; https://baptiste-wicht.com/posts/2012/04/c11-concurrency-tutorial-advanced-locking-and-condition-variables.html
-		    (include <thread>)
+			    (include <thread>)
+			  (include <atomic>)
 		  (include <deque>)
 		  (include <condition_variable>)
 		  
@@ -516,7 +517,18 @@ is replaced with replacement."
 				  (accept_again :ctor true))
 			      (macroexpand (alog (string "mt_consumer thread started")))
 			      (while accept_again
-				(funcall net.accept)
+				(raw "// this accept is blocking")
+				(raw "// in order to update display when no one is connection initiate a stub thread")
+				(macroexpand (alog (string "no connections yet, starting stub thread to keep display updated.")))
+				(let ((consumer_stub_keep_running :type "std::atomic<bool>" :ctor true)
+				      (consumer_stub_fun :ctor (lambda (()  :captures ("&") :ret ->void)
+								 (while consumer_stub_keep_running
+								   (funcall buffer.remove))))
+				      (consumer_stub_thread :type "std::thread"
+							    :ctor (comma-list consumer_stub_fun)))
+				  (funcall net.accept)
+				  (setf consumer_stub_keep_running false)
+				  (funcall consumer_stub_thread.join))
 				(setf send_lines true) 
 				(macroexpand (alog (string "mt_consumer accepted connection")))
 				(while send_lines
