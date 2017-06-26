@@ -550,6 +550,105 @@ public:
       while ((0 < bytes_left)) {
         {
           auto bytes(::send(m_conn_fd, (&(data[bytes_sent])), bytes_left, 0));
+          if ((bytes < 0)) {
+            {
+              const char *err_msgs[15] = {
+                  "The socket's  file  descriptor  is  marked  O_NONBLOCK  and "
+                  " the requested operation would block.",
+                  "A connection was forcibly closed by peer.",
+                  "A connection was forcibly closed by a peer.",
+                  "The socket is not connection-mode and no peer address is "
+                  "set.",
+                  "A signal interrupted send() before any data was "
+                  "transmitted.",
+                  "The  message  is too large to be sent all at once, as the "
+                  "socket requires.",
+                  "The socket is not connected.",
+                  "The socket argument does not refer to a socket.",
+                  "The socket argument is associated with a socket  that  does "
+                  " not support one or more of the values set in flags.",
+                  "The  socket  is  shut down for writing, or the socket is "
+                  "connection-mode and is no longer connected. In the latter "
+                  "case, and if the  socket  is  of  type  SOCK_STREAM or "
+                  "SOCK_SEQPACKET and the MSG_NOSIGNAL flag is not set, the "
+                  "SIGPIPE signal is generated to the calling thread.",
+                  "The calling process does not have appropriate privileges.",
+                  "An  I/O error occurred while reading from or writing to the "
+                  "file system.",
+                  "The local network interface used to  reach  the  "
+                  "destination  is down.",
+                  "No route to the network is present.",
+                  "Insufficient  resources  were available in the system to "
+                  "perform the operation."};
+              auto err_msg_lut([&](ssize_t idx) -> int {
+                switch (idx) {
+                case EAGAIN: {
+                  return 0;
+                  break;
+                }
+                case EBADF: {
+                  return 1;
+                  break;
+                }
+                case ECONNRESET: {
+                  return 2;
+                  break;
+                }
+                case EDESTADDRREQ: {
+                  return 3;
+                  break;
+                }
+                case EINTR: {
+                  return 4;
+                  break;
+                }
+                case EMSGSIZE: {
+                  return 5;
+                  break;
+                }
+                case ENOTCONN: {
+                  return 6;
+                  break;
+                }
+                case ENOTSOCK: {
+                  return 7;
+                  break;
+                }
+                case EOPNOTSUPP: {
+                  return 8;
+                  break;
+                }
+                case EPIPE: {
+                  return 9;
+                  break;
+                }
+                case EACCES: {
+                  return 10;
+                  break;
+                }
+                case EIO: {
+                  return 11;
+                  break;
+                }
+                case ENETDOWN: {
+                  return 12;
+                  break;
+                }
+                case ENETUNREACH: {
+                  return 13;
+                  break;
+                }
+                case ENOBUFS: {
+                  return 14;
+                  break;
+                }
+                }
+              });
+              __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                                  "net::send errno=%d", errno,
+                                  err_msgs[err_msg_lut(errno)]);
+            }
+          }
           bytes_left -= bytes;
           bytes_sent += bytes;
         }
@@ -686,13 +785,6 @@ void android_main(android_app *app) {
                     // timestamp is in nanoseconds;
                     {
                       static std::array<char, 59> s;
-                      static std::array<char, 1024> sb;
-                      sprintf(sb.data(), "acc %12lld %+12.5f %+12.5f %+12.5f\n",
-                              static_cast<long long>(event.timestamp),
-                              event.acceleration.x, event.acceleration.y,
-                              event.acceleration.z);
-                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          "len %d", strlen(sb.data()));
                       snprintf(s.data(), 59,
                                "acc %12lld %+12.5f %+12.5f %+12.5f\n",
                                static_cast<long long>(event.timestamp),
@@ -706,12 +798,6 @@ void android_main(android_app *app) {
                     // timestamp is in nanoseconds;
                     {
                       static std::array<char, 59> s;
-                      static std::array<char, 1024> sb;
-                      sprintf(sb.data(), "gyr %12lld %+12.5f %+12.5f %+12.5f\n",
-                              static_cast<long long>(event.timestamp),
-                              event.data[0], event.data[1], event.data[2]);
-                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          "len %d", strlen(sb.data()));
                       snprintf(s.data(), 59,
                                "gyr %12lld %+12.5f %+12.5f %+12.5f\n",
                                static_cast<long long>(event.timestamp),
@@ -724,13 +810,6 @@ void android_main(android_app *app) {
                     // timestamp is in nanoseconds;
                     {
                       static std::array<char, 59> s;
-                      static std::array<char, 1024> sb;
-                      sprintf(sb.data(), "mag %12lld %+12.5f %+12.5f %+12.5f\n",
-                              static_cast<long long>(event.timestamp),
-                              event.magnetic.x, event.magnetic.y,
-                              event.magnetic.z);
-                      __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                          "len %d", strlen(sb.data()));
                       snprintf(
                           s.data(), 59, "mag %12lld %+12.5f %+12.5f %+12.5f\n",
                           static_cast<long long>(event.timestamp),

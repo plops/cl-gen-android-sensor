@@ -408,12 +408,38 @@ is replaced with replacement."
 				   (funcall "::close" m_fd))
 			 (function (send ((data :type "std::array<char,N>")) "template<std::size_t N> int")
 				   (let ((bytes_sent :ctor 0)
-					 (bytes_left :ctor N)
-					 )
+					 (bytes_left :ctor N))
 				     (while (< 0 bytes_left)
 				       (let ((bytes :ctor (funcall "::send" m_conn_fd (ref (aref data
 												 bytes_sent))
 								   bytes_left 0)))
+					 (if (< bytes 0)
+					     (statements
+					      ,(let ((err-msgs
+						      '((EAGAIN "The socket's  file  descriptor  is  marked  O_NONBLOCK  and  the requested operation would block.")
+							(EBADF "A connection was forcibly closed by peer.")
+							(ECONNRESET "A connection was forcibly closed by a peer.")
+							(EDESTADDRREQ "The socket is not connection-mode and no peer address is set.")
+							(EINTR  "A signal interrupted send() before any data was transmitted.")
+							(EMSGSIZE "The  message  is too large to be sent all at once, as the socket requires.")
+							(ENOTCONN "The socket is not connected.")
+							(ENOTSOCK "The socket argument does not refer to a socket.")
+							(EOPNOTSUPP "The socket argument is associated with a socket  that  does  not support one or more of the values set in flags.")
+							(EPIPE  "The  socket  is  shut down for writing, or the socket is connection-mode and is no longer connected. In the latter case, and if the  socket  is  of  type  SOCK_STREAM or SOCK_SEQPACKET and the MSG_NOSIGNAL flag is not set, the SIGPIPE signal is generated to the calling thread.")
+							(EACCES "The calling process does not have appropriate privileges.")
+							(EIO    "An  I/O error occurred while reading from or writing to the file system.")
+							(ENETDOWN "The local network interface used to  reach  the  destination  is down.")
+							(ENETUNREACH "No route to the network is present.")
+							(ENOBUFS "Insufficient  resources  were available in the system to perform the operation."))))
+						 `(let (((aref err_msgs ,(length err-msgs)) :type "const char*"
+							 :init (list ,@(loop for (e f) in err-msgs
+									  collect `(string ,f))))
+				 			(err_msg_lut
+							 :ctor (lambda (((idx :type ssize_t)) :captures ("&") :ret ->int)
+								 (case idx
+								   ,@(loop for (e f) in err-msgs and i from 0 appending
+									  `((,e (return ,i))))))))
+						  (macroexpand (alog (string "net::send errno=%d") errno (aref err_msgs (funcall err_msg_lut errno))))))))
 					 (-= bytes_left bytes)
 					 (+= bytes_sent bytes)))
 				     (return bytes_sent))))
@@ -495,8 +521,7 @@ is replaced with replacement."
 				    (funcall net.send value))))
 			      (macroexpand (alog (string "mt_consumer finished")))))
 		  (function (mt_produce ((buffer :type mt_buffer_t&) (value :type ,(format nil "const ~a&" msg-type))) void)
-			    (funcall buffer.add value)
-			    ))
+			    (funcall buffer.add value)))
 
 		      (function (android_main ((app :type android_app*))
 					     void)
@@ -570,13 +595,14 @@ is replaced with replacement."
 
 								 (let (
 								       (s :type ,(format nil "static ~a" msg-type))
-								       (sb :type "static std::array<char,1024>"))
-
-								   (funcall sprintf (funcall sb.data)
-									    (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f\\n"
-											     (subseq (format nil "~a" e) 0 3)))
-									    (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h)
-								   (macroexpand (alog (string "len %d") (funcall strlen (funcall sb.data))))
+								        )
+								   #+str-test
+								   (let ((sb :type "static std::array<char,1024>"))
+								     (funcall sprintf (funcall sb.data)
+										    (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f\\n"
+												     (subseq (format nil "~a" e) 0 3)))
+										    (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h)
+									       (macroexpand (alog (string "len %d") (funcall strlen (funcall sb.data)))))
 								   (funcall snprintf (funcall s.data) ,msg-n (string ,(format nil "~3a %12lld %+12.5f %+12.5f %+12.5f\\n"
 															  (subseq (format nil "~a" e) 0 3)))
 									    (funcall "static_cast<long long>" event.timestamp) ,f ,g ,h)
