@@ -439,7 +439,8 @@ is replaced with replacement."
 								 (case idx
 								   ,@(loop for (e f) in err-msgs and i from 0 appending
 									  `((,e (return ,i))))))))
-						  (macroexpand (alog (string "net::send msg{%d}=%s") errno (aref err_msgs (funcall err_msg_lut errno))))))))
+						    (macroexpand (alog (string "net::send msg{%d}=%s") errno (aref err_msgs (funcall err_msg_lut errno))))
+						    (return -1)))))
 					 (-= bytes_left bytes)
 					 (+= bytes_sent bytes)))
 				     (return bytes_sent))))
@@ -510,15 +511,20 @@ is replaced with replacement."
 					 (return back))))))
 
 		  (function (mt_consumer ((buffer :type "mt_buffer_t&")) void)
-			    (let ((net :type net_t))
+			    (let ((net :type net_t)
+				  (send_lines :ctor true)
+				  (accept_again :ctor true))
 			      (macroexpand (alog (string "mt_consumer thread started")))
-			      (funcall net.accept)
-			      (macroexpand (alog (string "mt_consumer accepted connection")))
-			      (while true
-				#+nil (macroexpand (alog (string "mt_consumer waits for value")))
-				(let ((value :ctor (funcall buffer.remove)))
-				  (statements
-				    (funcall net.send value))))
+			      (while accept_again
+				(funcall net.accept)
+				(setf send_lines true)
+				(macroexpand (alog (string "mt_consumer accepted connection")))
+				(while send_lines
+				  #+nil (macroexpand (alog (string "mt_consumer waits for value")))
+				  (let ((value :ctor (funcall buffer.remove)))
+				    (if (< (funcall net.send value) 0)
+					(statements
+					 (setf send_lines false))))))
 			      (macroexpand (alog (string "mt_consumer finished")))))
 		  (function (mt_produce ((buffer :type mt_buffer_t&) (value :type ,(format nil "const ~a&" msg-type))) void)
 			    (funcall buffer.add value)))

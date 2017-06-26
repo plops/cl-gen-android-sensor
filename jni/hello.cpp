@@ -647,6 +647,7 @@ public:
               __android_log_print(ANDROID_LOG_INFO, "native-activity",
                                   "net::send msg{%d}=%s", errno,
                                   err_msgs[err_msg_lut(errno)]);
+              return -1;
             }
           }
           bytes_left -= bytes;
@@ -701,15 +702,22 @@ public:
 void mt_consumer(mt_buffer_t &buffer) {
   {
     net_t net;
+    auto send_lines(true);
+    auto accept_again(true);
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
                         "mt_consumer thread started");
-    net.accept();
-    __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                        "mt_consumer accepted connection");
-    while (true) {
-      {
-        auto value(buffer.remove());
-        net.send(value);
+    while (accept_again) {
+      net.accept();
+      send_lines = true;
+      __android_log_print(ANDROID_LOG_INFO, "native-activity",
+                          "mt_consumer accepted connection");
+      while (send_lines) {
+        {
+          auto value(buffer.remove());
+          if ((net.send(value) < 0)) {
+            send_lines = false;
+          }
+        }
       }
     }
     __android_log_print(ANDROID_LOG_INFO, "native-activity",
