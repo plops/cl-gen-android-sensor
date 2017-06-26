@@ -439,7 +439,7 @@ is replaced with replacement."
 								 (case idx
 								   ,@(loop for (e f) in err-msgs and i from 0 appending
 									  `((,e (return ,i))))))))
-						  (macroexpand (alog (string "net::send errno=%d") errno (aref err_msgs (funcall err_msg_lut errno))))))))
+						  (macroexpand (alog (string "net::send msg{%d}=%s") errno (aref err_msgs (funcall err_msg_lut errno))))))))
 					 (-= bytes_left bytes)
 					 (+= bytes_sent bytes)))
 				     (return bytes_sent))))

@@ -645,7 +645,7 @@ public:
                 }
               });
               __android_log_print(ANDROID_LOG_INFO, "native-activity",
-                                  "net::send errno=%d", errno,
+                                  "net::send msg{%d}=%s", errno,
                                   err_msgs[err_msg_lut(errno)]);
             }
           }
